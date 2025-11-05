@@ -18,16 +18,19 @@ const HomeScreenBeforeLogin = ({ navigation }) => {
 
     useFocusEffect(
         useCallback(() => {
-            const checkToken = async () => {
+            const checkLogin = async () => {
                 const token = await AsyncStorage.getItem('user_login_token');
-                if (token) {
+                const userData = await AsyncStorage.getItem('user_data');
+                
+                if (token && userData) {
+                    console.log("✅ Auto login success");
                     navigation.reset({
                         index: 0,
                         routes: [{ name: 'CustomTabNavigator' }],
                     });
                 }
             };
-            checkToken();
+            checkLogin();
         }, [])
     );
     return (

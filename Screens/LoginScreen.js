@@ -83,7 +83,9 @@ const LoginScreen = ({ navigation }) => {
     const handleSendOTP = async () => {
         setIsLoading(true);
         try {
+            // Clear both token and user_data to prevent auto-login before OTP validation
             await AsyncStorage.removeItem('user_login_token');
+            await AsyncStorage.removeItem('user_data');
             const token = await getToken();
             if (!token) {
                 setDialogTitle("Error");
