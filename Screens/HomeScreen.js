@@ -8,7 +8,7 @@ import CustomiseImageSlider from '../ToolComponents/CustomiseImageSlider';
 import { useSelector } from 'react-redux';
 
 
-const HomeScreen = () => {
+const HomeScreen = ({click}) => {
     const screenWidth = Dimensions.get('window').width;
     const { emailRedux, profileImageRedux, nameRedux } = useSelector((state) => state.user);
     return (
@@ -55,7 +55,7 @@ const HomeScreen = () => {
                 </View>
 
                 <View style={{ marginTop: 120 }}>
-                    <MenuListComponent />
+                    <MenuListComponent click={click}/>
                 </View>
                 <View style={{ marginTop: 120 }}>
                     {/* <Text style={{ fontWeight: '700', fontSize: 14, marginLeft: 20, marginBottom: 8, color: '#595959' }}>New in Yatri Subidha</Text> */}

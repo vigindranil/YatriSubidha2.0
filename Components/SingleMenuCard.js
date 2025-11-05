@@ -1,9 +1,9 @@
 import { StyleSheet, Text, View, Image, TouchableOpacity } from 'react-native'
 import React from 'react'
 
-const SingleMenuCard = ({ img, name, height, width, accentColor = '#6366F1', onPress }) => {
+const SingleMenuCard = ({ img, name, height, width, accentColor = '#6366F1', onPress,clickable=false}) => {
     return (
-        <TouchableOpacity style={styles.cardContainer} activeOpacity={0.8} onPress={onPress}>
+        <TouchableOpacity style={styles.cardContainer} disabled={clickable} activeOpacity={0.8} onPress={onPress}>
             {/* Icon */}
             <View style={styles.iconWrap}>
                 <Image

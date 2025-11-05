@@ -31,7 +31,7 @@ const SplashScreen = ({ navigation }) => {
 
     const [displayText, setDisplayText] = useState("");
     const cursorAnimation = useRef(new Animated.Value(0)).current;
-    const text = "Yatri Subidha";
+    const text = "Yaatri Subidha";
     const speed = 100;
 
     useEffect(() => {
@@ -39,7 +39,7 @@ const SplashScreen = ({ navigation }) => {
         setDisplayText("");
 
         const type = () => {
-            if (currentIndex < text.length) {
+            if (currentIndex < text.length-1) {
                 setDisplayText((prev) => prev + text[currentIndex]);
                 currentIndex += 1;
                 setTimeout(type, speed);

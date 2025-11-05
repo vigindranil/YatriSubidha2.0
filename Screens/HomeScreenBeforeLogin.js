@@ -77,7 +77,7 @@ const HomeScreenBeforeLogin = ({ navigation }) => {
                 </View>
 
                 <View style={{ marginTop: 10 }}>
-                    <MenuListComponent />
+                    <MenuListComponent click={true}/>
                 </View>
                 <View style={{ marginTop: 120 }}>
                     <Text style={{ fontWeight: '700', fontSize: 14, marginLeft: 20, marginBottom: 8, color: '#595959' }}>New in Yatri Subidha</Text>

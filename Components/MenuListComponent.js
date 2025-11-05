@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 import SingleMenuCard from './SingleMenuCard'
 import { useNavigation } from '@react-navigation/native'
 
-const MenuListComponent = () => {
+const MenuListComponent = ({click}) => {
     // Define unique colors for each service category
     const serviceColors = {
         // Row 1 - Transportation & Logistics
@@ -65,9 +65,9 @@ const MenuListComponent = () => {
                             <TouchableOpacity style={[menuStyles.dialogButton, { backgroundColor: '#f0f0f5' }]} onPress={() => setDialogVisible(false)}>
                                 <Text style={[menuStyles.dialogButtonText, { color: '#595959' }]}>Close</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity style={[menuStyles.dialogButton, { backgroundColor: '#4123d0' }]} onPress={() => { setDialogVisible(false); navigation.navigate('StackNavigatorBooking', { screen: 'DateWiseSlotListScreen' }); }}>
+                            {/* <TouchableOpacity style={[menuStyles.dialogButton, { backgroundColor: '#4123d0' }]} onPress={() => { setDialogVisible(false); navigation.navigate('StackNavigatorBooking', { screen: 'DateWiseSlotListScreen' }); }}>
                                 <Text style={[menuStyles.dialogButtonText, { color: '#fff' }]}>Go to Book Slot</Text>
-                            </TouchableOpacity>
+                            </TouchableOpacity> */}
                         </View>
                     </View>
                 </View>
@@ -83,6 +83,7 @@ const MenuListComponent = () => {
                         height={35}
                         accentColor={serviceColors.bookSlot}
                         onPress={() => handleCardPress('Book Slot')}
+                        clickable={click}
                     />
                     <SingleMenuCard 
                         img={require('../Images/DigiLockerImage/ekart.png')} 
@@ -90,6 +91,7 @@ const MenuListComponent = () => {
                         height={35}
                         accentColor={serviceColors.eCarts}
                         onPress={() => handleCardPress('E-Carts Services')}
+                        clickable={click}
                     />
                     <SingleMenuCard 
                         img={require('../Images/DigiLockerImage/luggage.png')} 
@@ -97,6 +99,7 @@ const MenuListComponent = () => {
                         height={35}
                         accentColor={serviceColors.luggage}
                         onPress={() => handleCardPress('Luggage Movement')}
+                        clickable={click}
                     />
                 </View>
 
@@ -108,6 +111,7 @@ const MenuListComponent = () => {
                         height={35}
                         accentColor={serviceColors.security}
                         onPress={() => handleCardPress('Security Clearance')}
+                        clickable={click}
                     />
                     <SingleMenuCard 
                         img={require('../Images/DigiLockerImage/waiting.png')} 
@@ -115,6 +119,7 @@ const MenuListComponent = () => {
                         height={35}
                         accentColor={serviceColors.waiting}
                         onPress={() => handleCardPress('Priority Waiting Area')}
+                        clickable={click}
                     />
                     <SingleMenuCard 
                         img={require('../Images/DigiLockerImage/helper.png')} 
@@ -122,6 +127,7 @@ const MenuListComponent = () => {
                         height={35}
                         accentColor={serviceColors.support}
                         onPress={() => handleCardPress('Dedicated Support')}
+                        clickable={click}
                     />
                 </View>
 
@@ -133,6 +139,7 @@ const MenuListComponent = () => {
                         height={35}
                         accentColor={serviceColors.meal}
                         onPress={() => handleCardPress('Meal Booking')}
+                        clickable={click}
                     />
                     <SingleMenuCard 
                         img={require('../Images/DigiLockerImage/medicalIcon.png')} 
@@ -140,6 +147,7 @@ const MenuListComponent = () => {
                         height={35}
                         accentColor={serviceColors.medical}
                         onPress={() => handleCardPress('Medical Transit')}
+                        clickable={click}
                     />
                     <SingleMenuCard 
                         img={require('../Images/DigiLockerImage/healthIcon.png')} 
@@ -147,6 +155,7 @@ const MenuListComponent = () => {
                         height={35}
                         accentColor={serviceColors.health}
                         onPress={() => handleCardPress('Health Staff')}
+                        clickable={click}
                     />
                 </View>
 
@@ -158,6 +167,7 @@ const MenuListComponent = () => {
                         height={35}
                         accentColor={serviceColors.cab}
                         onPress={() => handleCardPress('Cab Booking')}
+                        clickable={click}
                     />
                     <SingleMenuCard 
                         img={require('../Images/DigiLockerImage/currencyExchange.png')} 
@@ -166,6 +176,7 @@ const MenuListComponent = () => {
                         width={34}
                         accentColor={serviceColors.currency}
                         onPress={() => handleCardPress('Currency Exchange')}
+                        clickable={click}
                     />
                     <SingleMenuCard 
                         img={require('../Images/DigiLockerImage/hotelIcon.png')} 
@@ -173,6 +184,7 @@ const MenuListComponent = () => {
                         height={35}
                         accentColor={serviceColors.hotel}
                         onPress={() => handleCardPress('Hotel Booking')}
+                        clickable={click}
                     />
                 </View>
 
@@ -184,6 +196,7 @@ const MenuListComponent = () => {
                         height={35}
                         accentColor={serviceColors.flight}
                         onPress={() => handleCardPress('Flight Booking')}
+                        clickable={click}
                     />
                     <SingleMenuCard 
                         img={require('../Images/DigiLockerImage/simIcon.png')} 
@@ -191,6 +204,7 @@ const MenuListComponent = () => {
                         height={35}
                         accentColor={serviceColors.sim}
                         onPress={() => handleCardPress('Mobile Sim')}
+                        clickable={click}
                     />
                     <View style={menuStyles.emptyCard} />
                 </View>

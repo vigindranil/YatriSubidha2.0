@@ -140,7 +140,7 @@ const NavigationRegister = () => {
                     }),
                 }}
             >
-                <Stack.Screen name='HomeScreen' component={HomeScreen}
+                <Stack.Screen name='HomeScreen' component={() => <HomeScreen click={false} />}
                     options={{
                         title: 'Yatri Subidha',
                         headerBackground: () => (
