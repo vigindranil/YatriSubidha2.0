@@ -1,8 +1,8 @@
-import { SafeAreaView, StatusBar, StyleSheet, Text, View, Pressable, Image, TextInput, Dimensions, TouchableOpacity, ActivityIndicator } from 'react-native'
+import { SafeAreaView, StatusBar, StyleSheet, Text, View, Pressable, Image, TextInput, Dimensions, TouchableOpacity, ActivityIndicator, Modal } from 'react-native' // Modal ko import karein
 import React, { useCallback, useEffect, useState } from 'react'
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import LoginSpringButton from '../ToolComponents/LoginSpringButton';
-import { Entypo } from '@expo/vector-icons';
+import { Entypo } from '@expo/vector-icons'; // <--- YAHAN SPELLING THEEK KAR DI GAYI HAI
 import axiosConfiguration from '../Axios_BaseUrl_Token_SetUp/axiosConfiguration';
 import { getToken } from '../Axios_BaseUrl_Token_SetUp/getToken';
 import { setToken } from '../Axios_BaseUrl_Token_SetUp/setToken';
@@ -12,8 +12,31 @@ import AntDesign from "@expo/vector-icons/AntDesign";
 import { useFocusEffect } from '@react-navigation/native';
 import { useDispatch } from 'react-redux';
 import { setUserInfo } from '../Redux/setUserInfo';
+import sendOTP from "../Axios_BaseUrl_Token_SetUp/sendOtp.js"
+import { validateOTP } from "../Axios_BaseUrl_Token_SetUp/ValidateOtp.js"
 
-// import axiosConfiguration from "../Axios_BaseUrl_Token_SetUp/axiosConfiguration";
+// Custom Dialog Component
+const CustomAlertDialog = ({ visible, title, message, onClose }) => {
+    return (
+        <Modal
+            animationType="fade"
+            transparent={true}
+            visible={visible}
+            onRequestClose={onClose}
+        >
+            <Pressable style={styles.modalOverlay} onPress={onClose}>
+                <View style={styles.modalContainer}>
+                    <Text style={styles.modalTitle}>{title}</Text>
+                    <Text style={styles.modalMessage}>{message}</Text>
+                    <TouchableOpacity style={styles.modalButton} onPress={onClose}>
+                        <Text style={styles.modalButtonText}>OK</Text>
+                    </TouchableOpacity>
+                </View>
+            </Pressable>
+        </Modal>
+    );
+};
+
 
 const LoginScreen = ({ navigation }) => {
     const windowWidth = Dimensions.get("window").width;
@@ -25,18 +48,24 @@ const LoginScreen = ({ navigation }) => {
     const [isOtpBtnActive, setIsOtpBtnActive] = useState(true);
     const [isOtp, setIsOtp] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [errMsg, setErrMsg] = useState();
+    const [errMsg, setErrMsg] = useState('');
     const [reset, setReset] = useState(false)
     const [resetPressCount, setResetPressCount] = useState(0)
     const dispatch = useDispatch();
 
+    // Custom Dialog ke liye States
+    const [isDialogVisible, setIsDialogVisible] = useState(false);
+    const [dialogTitle, setDialogTitle] = useState('');
+    const [dialogMessage, setDialogMessage] = useState('');
+
+
     useEffect(() => {
         console.log('fetching');
-        fetch("https://yatrisubidha.wb.gov.in/").catch(()=>{
+        fetch("https://yatrisubidha.wb.gov.in/").catch(() => {
             console.log('error');
         });
         console.log('token');
-      }, []);
+    }, []);
 
     const validateEmail = (event) => {
         const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -50,77 +79,112 @@ const LoginScreen = ({ navigation }) => {
         }
     };
 
-    // This is for creating intentional dely
-    function delay(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }
-
-
-    // OTP handle Function   
+    // OTP handle Function - Updated to use Custom Dialog
     const handleSendOTP = async () => {
         setIsLoading(true);
         try {
             await AsyncStorage.removeItem('user_login_token');
-            setIsLoading(true);
             const token = await getToken();
-            setIsLoading(false);
-            console.log('token', token);
-                if (!token) {
-                alert("Failed to generate or retrieve token.");
+            if (!token) {
+                setDialogTitle("Error");
+                setDialogMessage("Failed to generate or retrieve token.");
+                setIsDialogVisible(true);
+                setIsLoading(false);
                 return;
-                }
+            }
+            
+            const response = await sendOTP(email);
 
-            // const response = await axiosConfiguration.post('/user/send-login-otp', { email });
-            // console.log('Response Data:', response.data); 
+            setDialogTitle(response.success ? "Success" : "Error");
+            setDialogMessage(response.message);
+            setIsDialogVisible(true);
 
-            // if (response?.data?.success === true) {
+            if (response.success) {
                 setIsOtp(true);
-            // }
-            await delay(2000);
+            } else {
+                setIsOtp(false);
+            }
         } catch (error) {
-            console.error('Error fetching data:', error);
-        }
-        finally {
+            console.error('Error in handleSendOTP:', error);
+            setDialogTitle("Error");
+            setDialogMessage("An unexpected error occurred. Please try again.");
+            setIsDialogVisible(true);
+        } finally {
             setIsLoading(false);
         }
     }
 
 
+    console.log("otp", otp);
 
 
     const otpValidate = (event) => {
-        // console.log(typeof (event));
         if (event) {
             setIsOtpBtnActive(false);
-            setOtp(event)
+            setOtp(event);
         }
         else {
             setIsOtpBtnActive(true);
             setOtp('');
         };
     }
-
+    
+    // THEEK KIYA HUA FUNCTION
     const handleValidateOtp = async () => {
-       
-      };
-      
+        setIsLoading(true);
+        try {
+            console.log("🔹 In the validate OTP function...");
+            const response = await validateOTP(email, otp);
+            
+            if (response.success) {
+                console.log("OTP validated successfully");
+                // Navigation se pehle success ka dialog dikha sakte hain (optional)
+                setDialogTitle("Success!");
+                setDialogMessage(response.message);
+                setIsDialogVisible(true);
+
+                // Thodi der baad navigate karein ya dialog ke OK button par
+                setTimeout(() => {
+                    setIsDialogVisible(false);
+                    navigation.reset({
+                        index: 0,
+                        routes: [{ name: "CustomTabNavigator" }],
+                    });
+                }, 1500); // 1.5 second baad
+
+            } else {
+                console.log(" OTP validation failed");
+                setDialogTitle("Validation Failed");
+                setDialogMessage(response.message);
+                setIsDialogVisible(true);
+            }
+        } catch (e) {
+            console.error("in the validate otp error", e);
+            setDialogTitle("Error");
+            setDialogMessage("An unexpected error occurred. Please try again.");
+            setIsDialogVisible(true);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     useFocusEffect(
         useCallback(() => {
-            const checkToken = async () => {
-                const token = await AsyncStorage.getItem('user_login_token');
-                if (token) {
+            const checkLogin = async () => {
+                const token = await AsyncStorage.getItem("user_login_token");
+                const userData = await AsyncStorage.getItem("user_data");
+
+                if (token && userData) {
+                    console.log("✅ Auto login success");
                     navigation.reset({
                         index: 0,
-                        routes: [{ name: 'CustomTabNavigator' }],
+                        routes: [{ name: "CustomTabNavigator" }],
                     });
                 }
             };
-            checkToken();
-
+            checkLogin();
         }, [reset])
     );
-
 
     const handleReset = () => {
         setEmail('');
@@ -136,6 +200,13 @@ const LoginScreen = ({ navigation }) => {
 
     return (
         <LinearGradient colors={["#ccdcff", "#ccdcff", "#ccdcff"]} style={{ flex: 1 }}>
+            <CustomAlertDialog
+                visible={isDialogVisible}
+                title={dialogTitle}
+                message={dialogMessage}
+                onClose={() => setIsDialogVisible(false)}
+            />
+
             <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginTop: 40, height: 40, width: 40, marginLeft: 15 }}>
                 <AntDesign name="arrowleft" size={30} color="#4d4d4d" />
             </TouchableOpacity>
@@ -168,11 +239,11 @@ const LoginScreen = ({ navigation }) => {
                                         style={{ width: 280, height: 40 }}
                                         placeholder='One Time Password'
                                         inputMode='numeric'
+                                        maxLength={6}
                                     />
                                 </View>
                             </View>
-                            <View style={{ marginTop: 10 }}>
-
+                            <View style={{ marginTop: 10, paddingHorizontal: 15 }}>
                                 {errMsg ? (<View style={{ alignItems: 'center' }}>
                                     <Text style={{ color: '#ff0000', textAlign: 'center', fontWeight: '600', fontSize: 15 }}>{errMsg}</Text>
 
@@ -220,7 +291,7 @@ const LoginScreen = ({ navigation }) => {
                                                 </TouchableOpacity>
                                             </View>
                                         )}
-                                <Text style={{ fontSize: 14, color: '#4d4d4d' }}>There might be some delay in receiving the One Time Password. OTP Will be expired in 15 minutes.</Text>
+                                <Text style={{ fontSize: 14, color: '#4d4d4d', textAlign: 'center' }}>There might be some delay in receiving the One Time Password. OTP Will be expired in 15 minutes.</Text>
                             </View>
 
                             <View style={{ marginTop: 25 }}>
@@ -255,13 +326,12 @@ const LoginScreen = ({ navigation }) => {
                             </View>
                             <View style={{ marginTop: 25 }}>
                                 <LoginSpringButton
-                                    // onPress={() => navigation.navigate('LoginOTPVerification')}
                                     onPress={handleSendOTP}
                                     title={'Send OTP'}
                                     btnHeight={50}
                                     btnWidth={screenWidth * .93}
-                                    bfrPrsColor={['#563bde', '#4325da']}//['#33cc33', '#248f24']
-                                    aftPrsColor={['#4123d0', '#3c21c4']}// ['#29a329', '#1f7a1f']
+                                    bfrPrsColor={['#563bde', '#4325da']}
+                                    aftPrsColor={['#4123d0', '#3c21c4']}
                                     btnTxtColor={'#fff'}
                                     btnTxtSize={18}
                                     isDisabled={isValid}
@@ -279,4 +349,49 @@ const LoginScreen = ({ navigation }) => {
 
 export default LoginScreen
 
-const styles = StyleSheet.create({})
+const styles = StyleSheet.create({
+    modalOverlay: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    modalContainer: {
+        width: '85%',
+        padding: 20,
+        backgroundColor: 'white',
+        borderRadius: 10,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5,
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginBottom: 15,
+        color: '#333',
+    },
+    modalMessage: {
+        fontSize: 16,
+        textAlign: 'center',
+        marginBottom: 20,
+        color: '#555',
+    },
+    modalButton: {
+        backgroundColor: '#4123d0',
+        paddingVertical: 10,
+        paddingHorizontal: 30,
+        borderRadius: 5,
+    },
+    modalButtonText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+})
