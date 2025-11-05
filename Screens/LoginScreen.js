@@ -130,34 +130,44 @@ const LoginScreen = ({ navigation }) => {
         };
     }
     
-    // Validate OTP Function
-    const handleValidateOtp = async () => {
-        setIsLoading(true);
-        try {
-            console.log("🔹 Validating OTP...");
-            const response = await validateOTP(email, otp);
+   // Validate OTP Function
+const handleValidateOtp = async () => {
+    setIsLoading(true);
+    try {
+        console.log("🔹 Validating OTP...");
+        const response = await validateOTP(email, otp);
+        
+        if (response.success) {
+            console.log("✅ OTP validated successfully");
             
-            if (response.success) {
-                console.log("✅ OTP validated successfully");
+            // Show success dialog
+            setDialogTitle("Success");
+            setDialogMessage("OTP validated successfully!");
+            setIsDialogVisible(true);
+
+            // Optionally, navigate after a short delay so the user can see the dialog
+            setTimeout(() => {
                 navigation.reset({
                     index: 0,
                     routes: [{ name: "CustomTabNavigator" }],
                 });
-            } else {
-                console.log("❌ OTP validation failed:", response.message);
-                setDialogTitle("Validation Failed");
-                setDialogMessage(response.message); // API se aaya hua error message dikhayein
-                setIsDialogVisible(true);
-            }
-        } catch (e) {
-            console.error("in the validate otp error", e);
-            setDialogTitle("Error");
-            setDialogMessage("An unexpected error occurred. Please try again.");
+            }, 1500); // 1.5 seconds delay
+        } else {
+            console.log("❌ OTP validation failed:", response.message);
+            setDialogTitle("Validation Failed");
+            setDialogMessage(response.message); // API se aaya hua error message dikhayein
             setIsDialogVisible(true);
-        } finally {
-            setIsLoading(false);
         }
-    };
+    } catch (e) {
+        console.error("in the validate otp error", e);
+        setDialogTitle("Error");
+        setDialogMessage("An unexpected error occurred. Please try again.");
+        setIsDialogVisible(true);
+    } finally {
+        setIsLoading(false);
+    }
+};
+
 
     useFocusEffect(
         useCallback(() => {

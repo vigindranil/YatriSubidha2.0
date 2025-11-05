@@ -11,6 +11,11 @@ import { getToken } from '../Axios_BaseUrl_Token_SetUp/getToken';
 import { fetchAndSetAuthToken } from '../Axios_BaseUrl_Token_SetUp/setToken';
 
 const DateWiseSlotListScreen = ({ navigation }) => {
+    // Dropdown ke liye naye state variables
+    const [journeyType, setJourneyType] = useState('Arrival');
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+    // Aapke pehle ke state variables
     const [date, setDate] = useState(new Date());
     const [showDatePicker, setShowDatePicker] = useState(false);
     const formatDateToYMD = (d) => {
@@ -25,6 +30,8 @@ const DateWiseSlotListScreen = ({ navigation }) => {
     const [slotList, setSlotList] = useState();
     const [isLoading, setIsLoading] = useState(false);
     const [todaysDate, setTodaysDate] = useState();
+    
+    // Aapka pehle ka function - ismein koi badlav nahi kiya gaya hai
     const dateWiseSlotDetails = async (date) => {
         setIsLoading(true);
         try {
@@ -219,95 +226,141 @@ const DateWiseSlotListScreen = ({ navigation }) => {
 
     return (
         <View style={styles.container}>
-            {/* ============header section============= */}
-            <View style={styles.headerTitleContainer}>
+            {/* ============ Header Section (Sirf Title ke saath) ============= */}
+            <View style={styles.headerContainer}>
                 <Text style={styles.headerTitle}>Slot Availability</Text>
             </View>
-            {/* ============header section end ============= */}
+            {/* ============ Header Section End ============= */}
 
-            {/* ============Body section start ============= */}
-            <View style={styles.bodyContainer}>
-                <View style={{ marginTop: 10 }}>
-                    <Text style={styles.datePrompt}>Select A Date For Checking Availability</Text>
-                </View>
+            {/* ============ Body Section Start ============= */}
+            <Pressable style={styles.bodyContainerWrapper} onPress={() => setIsDropdownOpen(false)}>
+                <View style={styles.bodyContainer}>
+                    
+                    {/* ============ Dropdown Section (Date picker ke upar) ============ */}
+                    <View style={styles.inputContainerWithPrompt}>
+                        <Text style={styles.datePrompt}>Select Journey Type</Text>
+                        <View style={styles.journeyTypeDropdownContainer}>
+                            <TouchableOpacity
+                                onPress={() => setIsDropdownOpen(!isDropdownOpen)}
+                                style={styles.customInputButton} // Same style as date picker
+                            >
+                                <View style={styles.customInputButtonInner}>
+                                    <View style={styles.dateIconWrap}>
+                                        <Ionicons name="swap-vertical" size={18} color="#4123d0" />
+                                    </View>
+                                    <Text style={styles.customInputText}>{journeyType}</Text>
+                                    <AntDesign name={isDropdownOpen ? "up" : "down"} size={14} color="#737373" />
+                                </View>
+                            </TouchableOpacity>
 
-                {/* ============ Date Picker Section================== */}
-                <View style={styles.dateInputContainer}>
-                    <Pressable
-                        onPress={() => setShowDatePicker(true)}
-                        style={styles.datePressable}
-                    >
-                        <View style={styles.datePressableInner}>
-                            <View style={styles.dateIconWrap}>
-                                <AntDesign name="calendar" size={18} color="#4123d0" />
-                            </View>
-                            <TextInput value={formattedDate} style={styles.dateTextInput} editable={false} />
-                            <AntDesign name="down" size={14} color="#737373" />
-                        </View>
-                    </Pressable>
-                    <Modal
-                        animationType="fade"
-                        transparent={true}
-                        visible={showDatePicker}
-                        onRequestClose={() => setShowDatePicker(false)}
-                    >
-                        <View style={styles.datePickerModalOverlay}>
-                            <View style={styles.datePickerCard}>
-                                <View style={styles.datePickerHeader}>
-                                    <Text style={styles.datePickerTitle}>Select a date</Text>
-                                    <Text style={styles.datePickerSubtitle}>Choose within the next 30 days</Text>
-                                </View>
-                                <View style={{ paddingHorizontal: 6, paddingTop: 6 }}>
-                                    <DateTimePicker
-                                        testID="dateTimePicker"
-                                        value={date}
-                                        mode="date"
-                                        is24Hour={true}
-                                        display="default"
-                                        minimumDate={minimumDate}
-                                        maximumDate={maximumDate}
-                                        onChange={handleDateChange}
-                                        style={{ alignSelf: 'center' }}
-                                    />
-                                </View>
-                                <View style={styles.datePickerActions}>
-                                    <TouchableOpacity onPress={() => setShowDatePicker(false)} style={[styles.actionButton, { backgroundColor: '#f0f0f5' }]}> 
-                                        <Text style={[styles.actionButtonText, { color: '#595959' }]}>Cancel</Text>
+                            {isDropdownOpen && (
+                                <View style={styles.dropdownMenu}>
+                                    <TouchableOpacity
+                                        style={styles.dropdownItem}
+                                        onPress={() => {
+                                            setJourneyType('Arrival');
+                                            setIsDropdownOpen(false);
+                                            // Yahan aap 'Arrival' ke liye data fetch karne ka logic daal sakte hain
+                                        }}
+                                    >
+                                        <Text style={styles.dropdownItemText}>Arrival</Text>
                                     </TouchableOpacity>
-                                    <TouchableOpacity onPress={() => { setShowDatePicker(false); dateWiseSlotDetails(formattedDate); }} style={[styles.actionButton, { backgroundColor: '#4123d0' }]}> 
-                                        <Text style={[styles.actionButtonText, { color: '#fff' }]}>Apply</Text>
+                                    <TouchableOpacity
+                                        style={[styles.dropdownItem, { borderBottomWidth: 0 }]}
+                                        onPress={() => {
+                                            setJourneyType('Departure');
+                                            setIsDropdownOpen(false);
+                                            // Yahan aap 'Departure' ke liye data fetch karne ka logic daal sakte hain
+                                        }}
+                                    >
+                                        <Text style={styles.dropdownItemText}>Departure</Text>
                                     </TouchableOpacity>
                                 </View>
-                            </View>
+                            )}
                         </View>
-                    </Modal>
-                </View>
-                {/* ============ Date Picker Section end ================== */}
-                <View style={{ marginVertical: 5 }}>
-                    <Text style={{ textAlign: 'center', fontWeight: '700', fontSize: 16, color: '#595959' }}>
-                        {todaysDate == formattedDate ? "Status of Today" : "Status of " + formattedDate}
+                    </View>
+                    {/* ============ Dropdown Section End ================== */}
 
-                    </Text>
-                </View>
-                {isLoading ? (
-                    <ActivityIndicator size="large" color="#4123d0" style={{ marginTop: 20 }} />
-                ) : Array.isArray(slotList) && slotList.length === 0 ? (
-                    <View style={{ alignItems: 'center', marginTop: 30, paddingHorizontal: 16 }}>
-                        <Text style={{ fontSize: 16, fontWeight: '700', color: '#737373', textAlign: 'center' }}>No slots available</Text>
-                        <Text style={{ marginTop: 8, fontSize: 14, color: '#8c8c8c', textAlign: 'center' }}>
-                            No slots are available on {formattedDate}. Please try another date.
+
+                    {/* ============ Date Picker Section ================== */}
+                    <View style={styles.inputContainerWithPrompt}>
+                        <Text style={styles.datePrompt}>Select A Date For Checking Availability</Text>
+                        <Pressable
+                            onPress={() => setShowDatePicker(true)}
+                            style={styles.customInputButton} // Same style as dropdown
+                        >
+                            <View style={styles.customInputButtonInner}>
+                                <View style={styles.dateIconWrap}>
+                                    <AntDesign name="calendar" size={18} color="#4123d0" />
+                                </View>
+                                <TextInput value={formattedDate} style={styles.customInputText} editable={false} />
+                                <AntDesign name="down" size={14} color="#737373" />
+                            </View>
+                        </Pressable>
+                        <Modal
+                            animationType="fade"
+                            transparent={true}
+                            visible={showDatePicker}
+                            onRequestClose={() => setShowDatePicker(false)}
+                        >
+                            <View style={styles.datePickerModalOverlay}>
+                                <View style={styles.datePickerCard}>
+                                    <View style={styles.datePickerHeader}>
+                                        <Text style={styles.datePickerTitle}>Select a date</Text>
+                                        <Text style={styles.datePickerSubtitle}>Choose within the next 30 days</Text>
+                                    </View>
+                                    <View style={{ paddingHorizontal: 6, paddingTop: 6 }}>
+                                        <DateTimePicker
+                                            testID="dateTimePicker"
+                                            value={date}
+                                            mode="date"
+                                            is24Hour={true}
+                                            display="default"
+                                            minimumDate={minimumDate}
+                                            maximumDate={maximumDate}
+                                            onChange={handleDateChange}
+                                            style={{ alignSelf: 'center' }}
+                                        />
+                                    </View>
+                                    <View style={styles.datePickerActions}>
+                                        <TouchableOpacity onPress={() => setShowDatePicker(false)} style={[styles.actionButton, { backgroundColor: '#f0f0f5' }]}>
+                                            <Text style={[styles.actionButtonText, { color: '#595959' }]}>Cancel</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity onPress={() => { setShowDatePicker(false); dateWiseSlotDetails(formattedDate); }} style={[styles.actionButton, { backgroundColor: '#4123d0' }]}>
+                                            <Text style={[styles.actionButtonText, { color: '#fff' }]}>Apply</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            </View>
+                        </Modal>
+                    </View>
+                    {/* ============ Date Picker Section End ================== */}
+                    
+                    <View style={{ marginVertical: 5 }}>
+                        <Text style={{ textAlign: 'center', fontWeight: '700', fontSize: 16, color: '#595959' }}>
+                            {todaysDate == formattedDate ? "Status of Today" : "Status of " + formattedDate}
                         </Text>
                     </View>
-                ) : (
-                    <FlatList
-                        data={slotList}
-                        showsVerticalScrollIndicator={false}
-                        renderItem={renderSlotItem}
-                        keyExtractor={(item) => item.id.toString()}
-                        contentContainerStyle={styles.flatListContentContainer}
-                    />
-                )}
-            </View>
+                    {isLoading ? (
+                        <ActivityIndicator size="large" color="#4123d0" style={{ marginTop: 20 }} />
+                    ) : Array.isArray(slotList) && slotList.length === 0 ? (
+                        <View style={{ alignItems: 'center', marginTop: 30, paddingHorizontal: 16 }}>
+                            <Text style={{ fontSize: 16, fontWeight: '700', color: '#737373', textAlign: 'center' }}>No slots available</Text>
+                            <Text style={{ marginTop: 8, fontSize: 14, color: '#8c8c8c', textAlign: 'center' }}>
+                                No slots are available on {formattedDate}. Please try another date.
+                            </Text>
+                        </View>
+                    ) : (
+                        <FlatList
+                            data={slotList}
+                            showsVerticalScrollIndicator={false}
+                            renderItem={renderSlotItem}
+                            keyExtractor={(item) => item.id.toString()}
+                            contentContainerStyle={styles.flatListContentContainer}
+                        />
+                    )}
+                </View>
+            </Pressable>
             <StatusBar barStyle="light-content" backgroundColor="transparent" translucent={true} />
         </View>
     );
@@ -320,41 +373,46 @@ const styles = StyleSheet.create({
         flex: 1,
         marginTop: 10,
     },
-    headerTitleContainer: {
+    headerContainer: {
         width: '100%',
         alignItems: 'center',
+        paddingBottom: 10,
     },
     headerTitle: {
         fontSize: 20,
         fontWeight: '700',
         color: '#0099cc',
     },
+    bodyContainerWrapper: {
+        flex: 1,
+    },
     bodyContainer: {
         marginLeft: '2.5%',
         width: '95%',
         flex: 1,
     },
+    // Naye styles dono (Dropdown aur Date Picker) ke liye
+    inputContainerWithPrompt: {
+        marginTop: 10,
+        marginHorizontal: 10,
+    },
     datePrompt: {
-        marginBottom: 5,
+        marginBottom: 8, // Thoda space badhaya hai
         fontSize: 15,
         fontWeight: '600',
         color: '#595959',
     },
-    dateInputContainer: {
-        borderWidth: 0,
-        padding: 0,
-        borderRadius: 8,
-        marginTop: 8,
-        marginBottom: 10,
+    journeyTypeDropdownContainer: {
+        position: 'relative', // Dropdown menu ki positioning ke liye
+        zIndex: 10, // Yeh zaroori hai
     },
-    datePressable: {
-        marginHorizontal: 10,
+    customInputButton: { // Yeh style ab dono button use kar rahe hain
         borderRadius: 10,
         backgroundColor: '#f7f7fb',
         borderWidth: 1,
         borderColor: '#e6e6f0',
     },
-    datePressableInner: {
+    customInputButtonInner: { // Yeh style dono button ke andar ke content ke liye hai
         paddingHorizontal: 12,
         paddingVertical: 10,
         flexDirection: 'row',
@@ -371,12 +429,39 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         marginRight: 10
     },
-    dateTextInput: {
-        marginLeft: 4,
+    customInputText: { // Yeh style dono button ke text ke liye hai
         flex: 1,
         fontWeight: '700',
-        color: '#404040'
+        color: '#404040',
+        fontSize: 16, // Font size same karne ke liye
     },
+    // Dropdown ke specific styles
+    dropdownMenu: {
+        position: 'absolute',
+        top: 52, // Button ki height ke hisaab se
+        width: '100%',
+        backgroundColor: '#fff',
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#e6e6f0',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 5,
+    },
+    dropdownItem: {
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f0f0f5',
+    },
+    dropdownItemText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#595959',
+    },
+    // Baaki ke purane styles
     flatListContentContainer: {
         paddingBottom: 20,
     },

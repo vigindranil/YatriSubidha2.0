@@ -50,12 +50,10 @@ export const validateOTP = async (email, otp) => {
       parsedResult = JSON.parse(resultText);
     } catch (err) {
       console.error("Failed to parse response:", err);
-      // Alert ki jagah object return karein
-      return { success: false, message: "Invalid response from server." };
+       return { success: false, message: "Invalid response from server." };
     }
 
-    // --- Yahan har condition ek object return karegi ---
-
+ 
     if (parsedResult?.error?.code === "INVALID_TOKEN") {
       return { success: false, message: "Token expired! Please generate a new one." };
 
@@ -63,8 +61,7 @@ export const validateOTP = async (email, otp) => {
       return { success: false, message: parsedResult.error.message || "OTP expired. Please try again." };
 
     } else if (parsedResult?.status === 0) {
-      // Success case
-      try {
+       try {
         await AsyncStorage.setItem("user_data", JSON.stringify(parsedResult.data));
         console.log("User data saved:", parsedResult.data);
       } catch (storageError) {
@@ -74,12 +71,10 @@ export const validateOTP = async (email, otp) => {
       return { success: true, message: parsedResult.message || "OTP validated successfully!" };
 
     } else {
-      // **Yeh block galat OTP aur dusre errors ko handle karega**
-      return { success: false, message: parsedResult?.message || "The OTP you entered is incorrect." };
+       return { success: false, message: parsedResult?.message || "The OTP you entered is incorrect." };
     }
   } catch (error) {
     console.error("Validate OTP Error:", error);
-    // General error ke liye bhi object return karein
-    return { success: false, message: "Failed to validate OTP. Please check your internet connection." };
+     return { success: false, message: "Failed to validate OTP. Please check your internet connection." };
   }
 };
