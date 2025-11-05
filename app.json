@@ -12,16 +12,20 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.indranilvyoma.YatriSubidha"
     },
     "android": {
+      "enableDangerouslyLegacyHacks": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.indranilvyoma.YatriSubidha"
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "newArchEnabled": true
   }
 }
