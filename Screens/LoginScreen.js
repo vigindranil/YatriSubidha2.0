@@ -1,8 +1,8 @@
-import { SafeAreaView, StatusBar, StyleSheet, Text, View, Pressable, Image, TextInput, Dimensions, TouchableOpacity, ActivityIndicator, Modal } from 'react-native' // Modal ko import karein
+import { SafeAreaView, StatusBar, StyleSheet, Text, View, Pressable, Image, TextInput, Dimensions, TouchableOpacity, ActivityIndicator, Modal } from 'react-native'
 import React, { useCallback, useEffect, useState } from 'react'
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import LoginSpringButton from '../ToolComponents/LoginSpringButton';
-import { Entypo } from '@expo/vector-icons'; // <--- YAHAN SPELLING THEEK KAR DI GAYI HAI
+import { Entypo } from '@expo/vector-icons';
 import axiosConfiguration from '../Axios_BaseUrl_Token_SetUp/axiosConfiguration';
 import { getToken } from '../Axios_BaseUrl_Token_SetUp/getToken';
 import { setToken } from '../Axios_BaseUrl_Token_SetUp/setToken';
@@ -79,7 +79,7 @@ const LoginScreen = ({ navigation }) => {
         }
     };
 
-    // OTP handle Function - Updated to use Custom Dialog
+    // OTP handle Function
     const handleSendOTP = async () => {
         setIsLoading(true);
         try {
@@ -89,7 +89,6 @@ const LoginScreen = ({ navigation }) => {
                 setDialogTitle("Error");
                 setDialogMessage("Failed to generate or retrieve token.");
                 setIsDialogVisible(true);
-                setIsLoading(false);
                 return;
             }
             
@@ -129,33 +128,23 @@ const LoginScreen = ({ navigation }) => {
         };
     }
     
-    // THEEK KIYA HUA FUNCTION
+    // Validate OTP Function
     const handleValidateOtp = async () => {
         setIsLoading(true);
         try {
-            console.log("🔹 In the validate OTP function...");
+            console.log("🔹 Validating OTP...");
             const response = await validateOTP(email, otp);
             
             if (response.success) {
-                console.log("OTP validated successfully");
-                // Navigation se pehle success ka dialog dikha sakte hain (optional)
-                setDialogTitle("Success!");
-                setDialogMessage(response.message);
-                setIsDialogVisible(true);
-
-                // Thodi der baad navigate karein ya dialog ke OK button par
-                setTimeout(() => {
-                    setIsDialogVisible(false);
-                    navigation.reset({
-                        index: 0,
-                        routes: [{ name: "CustomTabNavigator" }],
-                    });
-                }, 1500); // 1.5 second baad
-
+                console.log("✅ OTP validated successfully");
+                navigation.reset({
+                    index: 0,
+                    routes: [{ name: "CustomTabNavigator" }],
+                });
             } else {
-                console.log(" OTP validation failed");
+                console.log("❌ OTP validation failed:", response.message);
                 setDialogTitle("Validation Failed");
-                setDialogMessage(response.message);
+                setDialogMessage(response.message); // API se aaya hua error message dikhayein
                 setIsDialogVisible(true);
             }
         } catch (e) {
