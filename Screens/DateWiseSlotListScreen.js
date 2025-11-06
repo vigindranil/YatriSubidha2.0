@@ -18,7 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getToken } from '../Axios_BaseUrl_Token_SetUp/getToken';
 import { fetchAndSetAuthToken } from '../Axios_BaseUrl_Token_SetUp/setToken';
 import SlotBookingCard from '../Components/SlotBookingCard';
-
+ 
 const DateWiseSlotListScreen = () => {
   const [journeyType, setJourneyType] = useState('Arrival');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -28,14 +28,14 @@ const DateWiseSlotListScreen = () => {
   const [slotList, setSlotList] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [todaysDate, setTodaysDate] = useState('');
-
+ 
   function formatDateToYMD(d) {
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   }
-
+ 
   const saveJourneyType = async (type) => {
     try {
       await AsyncStorage.setItem('selectedJourneyType', type);
@@ -43,8 +43,8 @@ const DateWiseSlotListScreen = () => {
       console.error('Error saving journey type:', e);
     }
   };
-
-
+ 
+ 
   const dateWiseSlotDetails = async (date, type) => {
     setIsLoading(true);
     setSlotList([]);
@@ -52,7 +52,7 @@ const DateWiseSlotListScreen = () => {
       const apiType = type === 'Arrival' ? '2' : '1';
       let authToken = await getToken();
       if (!authToken) authToken = await fetchAndSetAuthToken();
-
+ 
      const saveJourneyType = async (type) => {
         try {
             await AsyncStorage.setItem('selectedJourneyType', type);
@@ -61,27 +61,27 @@ const DateWiseSlotListScreen = () => {
             console.error('Journey Type save karne mein error aaya:', e);
         }
     };
-
-
+ 
+ 
       const formData = new FormData();
       formData.append('UserID', '2');
       formData.append('Type', apiType);
       formData.append('JourneyDate', date);
       formData.append('AuthInfo', '{}');
-
+ 
       const res = await fetch('https://yatrisubidha.wb.gov.in/service/GetAvailableSlotByDate', {
         method: 'POST',
         headers: { Authorization: authToken || '', Accept: 'application/json' },
         body: formData,
       });
-
+ 
       const rawResponse = await res.json();
       const items = rawResponse?.Data || rawResponse?.data || rawResponse || [];
       if (!Array.isArray(items)) {
         setSlotList([]);
         return;
       }
-
+ 
       const normalized = items.map((it, idx) => ({
         id: it.SlotID || idx.toString(),
         name: it.SlotNameEng || 'Unnamed Slot',
@@ -97,7 +97,7 @@ const DateWiseSlotListScreen = () => {
       setIsLoading(false);
     }
   };
-
+ 
   const handleDateChange = (event, selectedDate) => {
     setShowDatePicker(false);
     if (selectedDate) {
@@ -106,7 +106,7 @@ const DateWiseSlotListScreen = () => {
       setFormattedDate(formatDateToYMD(currentDate));
     }
   };
-
+ 
   useFocusEffect(
     React.useCallback(() => {
       const today = new Date();
@@ -114,7 +114,7 @@ const DateWiseSlotListScreen = () => {
       setTodaysDate(formattedToday);
       setFormattedDate(formattedToday);
       setDate(today);
-
+ 
       const loadJourneyType = async () => {
         try {
           const savedType = await AsyncStorage.getItem('selectedJourneyType');
@@ -126,28 +126,28 @@ const DateWiseSlotListScreen = () => {
       loadJourneyType();
     }, [])
   );
-
+ 
   useEffect(() => {
     if (formattedDate && journeyType) {
       dateWiseSlotDetails(formattedDate, journeyType);
     }
   }, [formattedDate, journeyType]);
-
+ 
   const renderSlotItem = ({ item }) => (
     <SlotBookingCard slot={item} intendedDate={formattedDate} journeyType={journeyType}  />
   );
-
+ 
   const minimumDate = new Date();
   const maximumDate = new Date();
   maximumDate.setDate(minimumDate.getDate() + 30);
-
+ 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent={true} />
       <View style={styles.headerContainer}>
         <Text style={styles.headerTitle}>Slot Availability</Text>
       </View>
-
+ 
       {/* Fixed Header Section */}
       <View style={styles.fixedHeader}>
         <View style={styles.inputContainerWithPrompt}>
@@ -188,7 +188,7 @@ const DateWiseSlotListScreen = () => {
             )}
           </View>
         </View>
-
+ 
         <View style={styles.inputContainerWithPrompt}>
           <Text style={styles.datePrompt}>Select A Date For Checking Availability</Text>
           <Pressable onPress={() => setShowDatePicker(true)} style={styles.customInputButton}>
@@ -202,7 +202,7 @@ const DateWiseSlotListScreen = () => {
           </Pressable>
         </View>
       </View>
-
+ 
       {/* FlatList Section */}
       <View style={styles.listContainer}>
         <Text style={styles.statusText}>
@@ -210,7 +210,7 @@ const DateWiseSlotListScreen = () => {
             ? `Status of Today (${journeyType})`
             : `Status of ${formattedDate} (${journeyType})`}
         </Text>
-
+ 
         {isLoading ? (
           <ActivityIndicator size="large" color="#4123d0" style={{ marginTop: 20 }} />
         ) : Array.isArray(slotList) && slotList.length === 0 ? (
@@ -230,7 +230,7 @@ const DateWiseSlotListScreen = () => {
           />
         )}
       </View>
-
+ 
       {/* Date Picker Modal */}
       <Modal
         animationType="fade"
@@ -257,9 +257,9 @@ const DateWiseSlotListScreen = () => {
     </View>
   );
 };
-
+ 
 export default DateWiseSlotListScreen;
-
+ 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff', paddingTop: StatusBar.currentHeight || 20 },
   headerContainer: { alignItems: 'center', paddingBottom: 8 },
@@ -326,3 +326,4 @@ const styles = StyleSheet.create({
   datePickerTitle: { fontSize: 16, fontWeight: '800', color: '#262626' },
   datePickerSubtitle: { fontSize: 12, color: '#8c8c8c', marginTop: 2 },
 });
+ 
