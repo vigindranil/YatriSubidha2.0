@@ -5,7 +5,7 @@ import { FontAwesome6 } from '@expo/vector-icons';
 import { AntDesign } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 
-const SlotBookingCard = ({ slot, intendedDate }) => {
+const SlotBookingCard = ({ slot, intendedDate,journeyType  }) => {
     const navigation = useNavigation();
 
     const totalCapacity = Number(slot.capacity || 0);
@@ -81,7 +81,7 @@ const SlotBookingCard = ({ slot, intendedDate }) => {
                     </View>
                 ) : (
                     <TouchableOpacity
-                        onPress={() => navigation.navigate('SlotBookFormScreen', { slotId: slot.id, slot: slot.name, slotTime: slot.timing, bookingDate: intendedDate })}
+                        onPress={() => navigation.navigate('SlotBookFormScreen', { slotId: slot.id, slot: slot.name, slotTime: slot.timing, bookingDate: intendedDate ,journeyType:journeyType })}
                         style={styles.ctaButton}
                         activeOpacity={0.9}
                     >

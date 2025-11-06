@@ -44,6 +44,7 @@ const DateWiseSlotListScreen = () => {
     }
   };
 
+
   const dateWiseSlotDetails = async (date, type) => {
     setIsLoading(true);
     setSlotList([]);
@@ -51,6 +52,16 @@ const DateWiseSlotListScreen = () => {
       const apiType = type === 'Arrival' ? '2' : '1';
       let authToken = await getToken();
       if (!authToken) authToken = await fetchAndSetAuthToken();
+
+     const saveJourneyType = async (type) => {
+        try {
+            await AsyncStorage.setItem('selectedJourneyType', type);
+            console.log(`Journey Type '${type}' local DB mein save ho gaya hai.`);
+        } catch (e) {
+            console.error('Journey Type save karne mein error aaya:', e);
+        }
+    };
+
 
       const formData = new FormData();
       formData.append('UserID', '2');
@@ -123,7 +134,7 @@ const DateWiseSlotListScreen = () => {
   }, [formattedDate, journeyType]);
 
   const renderSlotItem = ({ item }) => (
-    <SlotBookingCard slot={item} intendedDate={formattedDate}  />
+    <SlotBookingCard slot={item} intendedDate={formattedDate} journeyType={journeyType}  />
   );
 
   const minimumDate = new Date();

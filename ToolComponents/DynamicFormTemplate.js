@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, ScrollView, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import Modal from 'react-native-modal';
+import Modal from 'react-native-modal'; // This Modal is from react-native-modal
 import LottieView from 'lottie-react-native';
 import CustomiseSpringButton from './CustomiseSpringButton';
-
+import RNPickerSelect from 'react-native-picker-select';
 
 export default function DynamicFormTemplate({ email, slotId, bookingDate }) {
     const [isLoading, setIsLoading] = useState(false);
@@ -16,13 +16,26 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate }) {
         { key: 'name', placeholder: 'Enter Name', label: 'Name', value: '' },
         { key: 'mobile', placeholder: 'Mobile Number', label: 'Mobile Number', prefix: '+91', value: '' },
         { key: 'email', placeholder: 'Email Address', label: 'Email Address', value: '' },
-        { key: 'nationality', placeholder: 'Enter Nationality', label: 'Nationality', value: '' },
+        { key: 'nationality', placeholder: 'Select Nationality', label: 'Nationality', value: '' },
         { key: 'passportNumber', placeholder: 'Passport Number', label: 'Passport Number', value: '' },
         { key: 'address', placeholder: 'Address', label: 'Address', multiline: true, numberOfLines: 4, value: '' },
     ];
 
     const [sections, setSections] = useState([{ id: 1, fields: getInitialFields() }]);
     const [nextId, setNextId] = useState(2);
+
+    const nationalityOptions = [
+        { label: 'Indian', value: 'Indian' },
+        { label: 'Bangladeshi', value: 'Bangladeshi' },
+        { label: 'Nepali', value: 'Nepali' },
+        { label: 'Sri Lankan', value: 'Sri Lankan' },
+        { label: 'Pakistani', value: 'Pakistani' },
+        { label: 'Bhutani', value: 'Bhutani' },
+        { label: 'Afghan', value: 'Afghan' },
+        { label: 'Burmese', value: 'Burmese' },
+        { label: 'Chinese', value: 'Chinese' },
+    ];
+
 
     const addSection = () => {
         setSections([...sections, { id: nextId, fields: getInitialFields() }]);
@@ -72,7 +85,10 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate }) {
             else if (!/^\d{10}$/.test(text)) newErrors[sectionId].mobile = 'Mobile number must be 10 digits';
             else delete newErrors[sectionId].mobile;
         } else {
-            if (!text && ['nationality', 'passportNumber', 'address'].includes(fieldKey)) {
+            if (fieldKey === 'nationality' && !text) {
+                newErrors[sectionId][fieldKey] = `${fieldKey.charAt(0).toUpperCase() + fieldKey.slice(1)} is required`;
+            }
+            else if (!text && ['passportNumber', 'address'].includes(fieldKey)) {
                 newErrors[sectionId][fieldKey] = `${fieldKey.charAt(0).toUpperCase() + fieldKey.slice(1)} is required`;
             } else if (newErrors[sectionId][fieldKey]) {
                 delete newErrors[sectionId][fieldKey];
@@ -259,12 +275,14 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate }) {
                             <View style={{ marginTop: 15, flexDirection: 'row' }}>
                                 <View style={{ width: '47%' }}>
                                     <Text style={styles.label}>Nationality<Text style={styles.required}> *</Text></Text>
-                                    <View style={styles.inputContainer}>
-                                        <TextInput
-                                            placeholder='Enter Nationality'
-                                            style={styles.input}
-                                            value={section.fields.find(field => field.key === 'nationality').value}
-                                            onChangeText={(text) => handleInputChange(text, section.id, 'nationality')}
+                                    <View style={styles.pickerContainer}>
+                                        <RNPickerSelect
+                                            onValueChange={(value) => handleInputChange(value, section.id, 'nationality')}
+                                            items={nationalityOptions}
+                                            style={pickerSelectStyles}
+                                            value={section.fields.find(f => f.key === 'nationality').value}
+                                            placeholder={{ label: 'Select Nationality', value: '' }}
+                                            useNativeAndroidPickerStyle={false}
                                         />
                                     </View>
                                     {errors[section.id] && errors[section.id].nationality && (
@@ -347,43 +365,43 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate }) {
                         />
                     </View>
 
-                    <Modal 
+                    {/* Corrected Modal using react-native-modal */}
+                    <Modal
                         isVisible={isModalVisible}
                         onBackdropPress={() => setModalVisible(false)}
                         useNativeDriver={true}
                         hideModalContentWhileAnimating={true}
+                        style={styles.centeredModalStyle} 
                     >
-                        <View style={styles.modalCenterView}>
-                            <View style={styles.modalContent}>
-                                <View>
-                                    {finalResponse?.success ?
-                                        (<>
-                                            <Text style={styles.modalTitle}>Success !</Text>
+                        <View style={styles.modalContent}> {/* This is the actual modal box */}
+                            <View>
+                                {finalResponse?.success ?
+                                    (<>
+                                        <Text style={styles.modalTitle}>Success !</Text>
+                                        <View style={styles.lottieContainer}>
+                                            <LottieView
+                                                source={require('../Lottie/sucess.json')}
+                                                autoPlay loop={false} style={styles.lottie}
+                                            />
+                                        </View>
+                                        <Text style={styles.modalMessage}>{finalResponse?.message}</Text>
+                                    </>) : (
+                                        <>
+                                            <Text style={styles.modalTitle}>Booking Failed !</Text>
                                             <View style={styles.lottieContainer}>
                                                 <LottieView
-                                                    source={require('../Lottie/sucess.json')}
+                                                    source={require('../Lottie/failed.json')}
                                                     autoPlay loop={false} style={styles.lottie}
                                                 />
                                             </View>
                                             <Text style={styles.modalMessage}>{finalResponse?.message}</Text>
-                                        </>) : (
-                                            <>
-                                                <Text style={styles.modalTitle}>Booking Failed !</Text>
-                                                <View style={styles.lottieContainer}>
-                                                    <LottieView
-                                                        source={require('../Lottie/failed.json')}
-                                                        autoPlay loop={false} style={styles.lottie}
-                                                />
-                                                </View>
-                                                <Text style={styles.modalMessage}>{finalResponse?.message}</Text>
-                                            </>
-                                        )}
-                                </View>
-                                <View style={styles.closeButtonContainer}>
-                                    <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible(false)}>
-                                        <Text style={styles.closeButtonText}>Close</Text>
-                                    </TouchableOpacity>
-                                </View>
+                                        </>
+                                    )}
+                            </View>
+                            <View style={styles.closeButtonContainer}>
+                                <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible(false)}>
+                                    <Text style={styles.closeButtonText}>Close</Text>
+                                </TouchableOpacity>
                             </View>
                         </View>
                     </Modal>
@@ -427,6 +445,15 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: '#fff',
     },
+    pickerContainer: {
+        height: 40,
+        borderWidth: 0.5,
+        borderColor: '#666666',
+        borderRadius: 4,
+        marginTop: 8,
+        justifyContent: 'center',
+        backgroundColor: '#fff',
+    },
     input: {
         flex: 1,
         paddingHorizontal: 10,
@@ -464,10 +491,11 @@ const styles = StyleSheet.create({
         fontSize: 12,
         marginTop: 5,
     },
-    modalCenterView: {
-        flex: 1,
+    // Modal Styles (for react-native-modal)
+    centeredModalStyle: { // New style to center the modal content using react-native-modal's style prop
         justifyContent: 'center',
         alignItems: 'center',
+        margin: 0, // Crucial to ensure it takes full space and centers properly
     },
     modalContent: {
         width: '85%',
@@ -511,5 +539,26 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontWeight: '700',
         fontSize: 16,
+    },
+});
+
+// Styles specifically for RNPickerSelect
+const pickerSelectStyles = StyleSheet.create({
+    inputIOS: {
+        fontSize: 16,
+        paddingVertical: 10,
+        paddingHorizontal: 10,
+        color: 'black',
+        height: 40,
+    },
+    inputAndroid: {
+        fontSize: 16,
+        paddingHorizontal: 10,
+        paddingVertical: 10,
+        color: 'black',
+        height: 40,
+    },
+    placeholder: {
+        color: '#999',
     },
 });
