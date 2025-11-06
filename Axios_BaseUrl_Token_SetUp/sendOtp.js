@@ -45,7 +45,9 @@ const SendOtp = async (email) => {
     console.log("Send OTP Result:", result);
 
     if (result.includes("INVALID_TOKEN") || result.includes("expire")) {
+
       // Alert ko hata kar object return kiya gaya hai
+      
       return { success: false, message: "Token expired. Please regenerate token." };
     }
 

@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, ScrollView, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
-import CustomiseSpringButton from './CustomiseSpringButton';
-import axiosConfiguration from '../Axios_BaseUrl_Token_SetUp/axiosConfiguration';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import Modal from 'react-native-modal';
 import LottieView from 'lottie-react-native';
+import CustomiseSpringButton from './CustomiseSpringButton';
 
 
 export default function DynamicFormTemplate({ email, slotId, bookingDate }) {
     const [isLoading, setIsLoading] = useState(false);
     const [isModalVisible, setModalVisible] = useState(false);
-    const [finalResponse, setFinalResponse] = useState();
+    const [finalResponse, setFinalResponse] = useState(null); // इसे null से शुरू करें
     const [errors, setErrors] = useState({});
 
-    const initialFields = [
+    const getInitialFields = () => [
         { key: 'name', placeholder: 'Enter Name', label: 'Name', value: '' },
         { key: 'mobile', placeholder: 'Mobile Number', label: 'Mobile Number', prefix: '+91', value: '' },
         { key: 'email', placeholder: 'Email Address', label: 'Email Address', value: '' },
@@ -21,11 +21,11 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate }) {
         { key: 'address', placeholder: 'Address', label: 'Address', multiline: true, numberOfLines: 4, value: '' },
     ];
 
-    const [sections, setSections] = useState([{ id: 1, fields: initialFields }]);
+    const [sections, setSections] = useState([{ id: 1, fields: getInitialFields() }]);
     const [nextId, setNextId] = useState(2);
 
     const addSection = () => {
-        setSections([...sections, { id: nextId, fields: initialFields }]);
+        setSections([...sections, { id: nextId, fields: getInitialFields() }]);
         setNextId(nextId + 1);
     };
 
@@ -39,7 +39,6 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate }) {
             });
         }
     };
-
 
     const handleInputChange = (text, sectionId, fieldKey) => {
         setSections(sections.map(section => {
@@ -57,51 +56,35 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate }) {
             return section;
         }));
 
-        // Update errors state
-        setErrors(prevErrors => {
-            const newErrors = { ...prevErrors };
+        // Inline validation
+        const newErrors = { ...errors };
+        if (!newErrors[sectionId]) newErrors[sectionId] = {};
 
-            if (fieldKey === 'email') {
-                if (!text) {
-                    newErrors[sectionId] = { ...newErrors[sectionId], email: 'Email Address is required' };
-                } else if (!/\S+@\S+\.\S+/.test(text)) {
-                    newErrors[sectionId] = { ...newErrors[sectionId], email: 'Invalid email address' };
-                } else {
-                    if (newErrors[sectionId]) {
-                        delete newErrors[sectionId].email;
-                        if (Object.keys(newErrors[sectionId]).length === 0) {
-                            delete newErrors[sectionId];
-                        }
-                    }
-                }
-            } else if (fieldKey === 'mobile') {
-                if (!text) {
-                    newErrors[sectionId] = { ...newErrors[sectionId], mobile: 'Mobile number is required' };
-                } else if (!/^\d{10}$/.test(text)) {
-                    newErrors[sectionId] = { ...newErrors[sectionId], mobile: 'Mobile number must be 10 digits' };
-                } else {
-                    if (newErrors[sectionId]) {
-                        delete newErrors[sectionId].mobile;
-                        if (Object.keys(newErrors[sectionId]).length === 0) {
-                            delete newErrors[sectionId];
-                        }
-                    }
-                }
-            } else {
-                if (newErrors[sectionId] && newErrors[sectionId][fieldKey]) {
-                    delete newErrors[sectionId][fieldKey];
-                    if (Object.keys(newErrors[sectionId]).length === 0) {
-                        delete newErrors[sectionId];
-                    }
-                }
+        if (fieldKey === 'name') {
+            if (!text) newErrors[sectionId].name = 'Name is required';
+            else delete newErrors[sectionId].name;
+        } else if (fieldKey === 'email') {
+            if (!text) newErrors[sectionId].email = 'Email Address is required';
+            else if (!/\S+@\S+\.\S+/.test(text)) newErrors[sectionId].email = 'Invalid email address';
+            else delete newErrors[sectionId].email;
+        } else if (fieldKey === 'mobile') {
+            if (!text) newErrors[sectionId].mobile = 'Mobile number is required';
+            else if (!/^\d{10}$/.test(text)) newErrors[sectionId].mobile = 'Mobile number must be 10 digits';
+            else delete newErrors[sectionId].mobile;
+        } else {
+            if (!text && ['nationality', 'passportNumber', 'address'].includes(fieldKey)) {
+                newErrors[sectionId][fieldKey] = `${fieldKey.charAt(0).toUpperCase() + fieldKey.slice(1)} is required`;
+            } else if (newErrors[sectionId][fieldKey]) {
+                delete newErrors[sectionId][fieldKey];
             }
+        }
 
-            return newErrors;
-        });
+        if (Object.keys(newErrors[sectionId]).length === 0) {
+            delete newErrors[sectionId];
+        }
+
+        setErrors(newErrors);
     };
-
-
-
 
     const validate = () => {
         const newErrors = {};
@@ -125,47 +108,84 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate }) {
     };
 
 
-
-
-
     const handleSubmit = async () => {
         if (!validate()) {
             return;
         }
-
         setIsLoading(true);
+
         try {
-            const slots_id = slotId;
-            const users_email = email;
-            const slotBookingDate = bookingDate;
-            const isActive = 1;
+            const token = await AsyncStorage.getItem("user_login_token");
+            if (!token) {
+                setFinalResponse({ success: false, message: "Authentication token not found. Please log in again." });
+                setIsLoading(false); // Loading ko yahan bhi band karein
+                setModalVisible(true); // Modal ko yahan bhi dikhayein
+                return;
+            }
 
-            const fieldsArray = sections.map(item => item.fields);
-            const valuesObject = fieldsArray.map(fieldsArray => {
-                const objectWithValues = fieldsArray.reduce((acc, field) => {
-                    acc[field.key] = field.value;
-                    return acc;
-                }, {});
-
-                // Adding slot_id and user_email to each object
-                objectWithValues.slots_id = slots_id;
-                objectWithValues.users_email = users_email;
-                objectWithValues.slotBookingDate = slotBookingDate;
-                objectWithValues.isActive = isActive;
-                return objectWithValues;
+            const passengerInformation = sections.map(section => {
+                const passenger = {};
+                section.fields.forEach(field => {
+                    if (field.key === 'name') passenger.FullName = field.value;
+                    if (field.key === 'address') passenger.Address = field.value;
+                    if (field.key === 'nationality') passenger.Nationality = field.value;
+                    if (field.key === 'mobile') passenger.MobileNo = field.value;
+                    if (field.key === 'email') passenger.EmailID = field.value;
+                    if (field.key === 'passportNumber') passenger.PassportNo = field.value;
+                });
+                passenger.DOB = "1995-06-15";
+                passenger.Gender = "M";
+                passenger.PassportValidUpto = "2028-01-12";
+                passenger.VisaNo = "N/A";
+                passenger.VisaValidUpto = "2028-07-29";
+                return passenger;
             });
 
-            console.log(valuesObject);
-            const response = await axiosConfiguration.post('/slot/book', { bookingDetails: valuesObject });
-            setFinalResponse(response.data);
-            console.log('Response Data:', response.data);
+            const formdata = new FormData();
+            formdata.append("PassengerInformation", JSON.stringify(passengerInformation));
+            formdata.append("PrefferedSlotID", slotId);
+            formdata.append("JourneyDate", bookingDate);
+            formdata.append("AuthInfo", JSON.stringify({
+                SessionID: "123", IPaddress: "192.168.1.1", MACAddress: "123456", OSversion: "MAC"
+            }));
+            formdata.append("Type", "2");
 
-            // Reset the form fields to initial state after successful submission
-            setSections([{ id: 1, fields: initialFields }]);
-            setNextId(2);
-            setErrors({});
+            const myHeaders = new Headers();
+            myHeaders.append("Authorization", token);
+
+            const requestOptions = {
+                method: "POST",
+                headers: myHeaders,
+                body: formdata,
+                redirect: "follow",
+            };
+
+            const response = await fetch("https://yatrisubidha.wb.gov.in/service/savePassengerSlotBooking", requestOptions);
+            const resultText = await response.text();
+            console.log("Booking Save Result:", resultText);
+
+
+            let resultJson;
+            try {
+                resultJson = JSON.parse(resultText);
+            } catch (e) {
+                throw new Error("Server returned an invalid response.");
+            }
+
+            if (resultJson.status === 0) {
+                setFinalResponse({ success: true, message: resultJson.message || "Booking saved successfully!" });
+                setSections([{ id: 1, fields: getInitialFields() }]);
+                setNextId(2);
+                setErrors({});
+            } else if (resultText.includes("INVALID_TOKEN") || resultText.includes("expire")) {
+                setFinalResponse({ success: false, message: "Session expired. Please log in again." });
+            } else {
+                setFinalResponse({ success: false, message: resultJson.message || "Failed to save booking." });
+            }
+
         } catch (error) {
-            console.error('Error in fetching data:', error);
+            console.error('Error in saving booking:', error);
+            setFinalResponse({ success: false, message: "An error occurred. Please check your internet connection." });
         } finally {
             setIsLoading(false);
             setModalVisible(true);
@@ -173,15 +193,17 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate }) {
     };
 
 
-
     return (
         <>
             {isLoading ? (
-                <ActivityIndicator size="large" color="#4123d0" style={{ marginTop: 20 }} />
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                    <ActivityIndicator size="large" color="#4123d0" />
+                </View>
             ) : (
                 <ScrollView contentContainerStyle={styles.container}>
-                    {sections.map((section, index) => (
+                    {sections.map((section) => (
                         <View key={section.id} style={styles.sectionContainer}>
+
                             <View style={{ marginTop: 10 }}>
                                 <Text style={styles.label}>Name<Text style={styles.required}> *</Text></Text>
                                 <View style={styles.inputContainer}>
@@ -208,6 +230,7 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate }) {
                                             value={section.fields.find(field => field.key === 'mobile').value}
                                             onChangeText={(text) => handleInputChange(text, section.id, 'mobile')}
                                             keyboardType="numeric"
+                                            maxLength={10}
                                         />
                                     </View>
                                     {errors[section.id] && errors[section.id].mobile && (
@@ -223,6 +246,8 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate }) {
                                             style={styles.input}
                                             value={section.fields.find(field => field.key === 'email').value}
                                             onChangeText={(text) => handleInputChange(text, section.id, 'email')}
+                                            keyboardType="email-address"
+                                            autoCapitalize="none"
                                         />
                                     </View>
                                     {errors[section.id] && errors[section.id].email && (
@@ -271,7 +296,7 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate }) {
                                         numberOfLines={4}
                                         style={styles.textArea}
                                         placeholder='Address'
-                                        textAlignVertical='top' // Ensures text starts at the top
+                                        textAlignVertical='top'
                                         value={section.fields.find(field => field.key === 'address').value}
                                         onChangeText={(text) => handleInputChange(text, section.id, 'address')}
                                     />
@@ -281,22 +306,20 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate }) {
                                 )}
                             </View>
 
-                            {
-                                section.id !== 1 && (
-                                    <View style={styles.removeButtonContainer}>
-                                        <CustomiseSpringButton
-                                            onPress={() => removeSection(section.id)}
-                                            title={'Remove'}
-                                            btnHeight={35}
-                                            btnWidth={100}
-                                            bfrPrsColor={['#ff0000', '#e60000']}
-                                            aftPrsColor={['#e60000', '#990000']}
-                                            btnTxtColor={'#fff'}
-                                            btnTxtSize={15}
-                                        />
-                                    </View>
-                                )
-                            }
+                            {section.id !== 1 && (
+                                <View style={styles.removeButtonContainer}>
+                                    <CustomiseSpringButton
+                                        onPress={() => removeSection(section.id)}
+                                        title={'Remove'}
+                                        btnHeight={35}
+                                        btnWidth={100}
+                                        bfrPrsColor={['#ff0000', '#e60000']}
+                                        aftPrsColor={['#e60000', '#990000']}
+                                        btnTxtColor={'#fff'}
+                                        btnTxtSize={15}
+                                    />
+                                </View>
+                            )}
                         </View>
                     ))}
                     <View style={styles.buttonContainer}>
@@ -323,49 +346,39 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate }) {
                             btnTxtSize={18}
                         />
                     </View>
+
                     <Modal isVisible={isModalVisible}>
-                        <View style={{ height: '40%', borderRadius: 10, backgroundColor: '#fff', justifyContent: 'space-between' }}>
-                            <View style={{ marginTop: 10 }}>
-                                {finalResponse?.success ?
-                                    (<>
-                                        <Text style={{ fontSize: 22, fontWeight: '700', marginTop: 10, textAlign: 'center' }}>Success !</Text>
-                                        <View style={{ alignItems: 'center' }}>
-                                            <LottieView
-                                                source={
-                                                    require('../Lottie/sucess.json')
-                                                }
-                                                autoPlay
-                                                // loop={false}
-                                                style={{ height: 120, width: 120 }}
-                                            />
-                                        </View>
-                                        <View style={{ alignItems: 'center', marginTop: 10 }}>
-                                            <Text style={{ fontSize: 16, fontWeight: '600', color: '#666666' }}>{finalResponse?.message}</Text>
-                                        </View>
-                                    </>) : (
-                                        <>
-                                            <Text style={{ fontSize: 22, fontWeight: '700', marginTop: 10, textAlign: 'center' }}>Booking Failed !</Text>
-                                            <View style={{ alignItems: 'center' }}>
+                        <View style={styles.modalContanier}>
+                            <View style={styles.modalContent}>
+                                <View style={{ marginTop: 10 }}>
+                                    {finalResponse?.success ?
+                                        (<>
+                                            <Text style={styles.modalTitle}>Success !</Text>
+                                            <View style={styles.lottieContainer}>
                                                 <LottieView
-                                                    source={require('../Lottie/failed.json')}
-                                                    autoPlay
-                                                    // loop={false}
-                                                    style={{ height: 120, width: 120 }}
+                                                    source={require('../Lottie/sucess.json')}
+                                                    autoPlay loop={false} style={styles.lottie}
                                                 />
                                             </View>
-                                            <View>
-                                                <Text style={{ fontSize: 16, fontWeight: '600', color: '#666666' }}>{finalResponse?.message}</Text>
-                                            </View>
-                                        </>
-                                    )}
-                            </View>
-                            <View style={{ alignItems: 'center', marginBottom: 35 }}>
-                                <TouchableOpacity style={{
-                                    padding: 5, backgroundColor: '#b32d00', width: 80,
-                                    alignItems: 'center', justifyContent: 'center', borderRadius: 6,
-                                }} onPress={() => setModalVisible(false)}>
-                                    <Text style={{ color: '#fff', fontWeight: '700' }}>Close</Text>
-                                </TouchableOpacity>
+                                            <Text style={styles.modalMessage}>{finalResponse?.message}</Text>
+                                        </>) : (
+                                            <>
+                                                <Text style={styles.modalTitle}>Booking Failed !</Text>
+                                                <View style={styles.lottieContainer}>
+                                                    <LottieView
+                                                        source={require('../Lottie/failed.json')}
+                                                        autoPlay loop={false} style={styles.lottie}
+                                                    />
+                                                </View>
+                                                <Text style={styles.modalMessage}>{finalResponse?.message}</Text>
+                                            </>
+                                        )}
+                                </View>
+                                <View style={{ alignItems: 'center', marginBottom: 35 }}>
+                                    <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible(false)}>
+                                        <Text style={styles.closeButtonText}>Close</Text>
+                                    </TouchableOpacity>
+                                </View>
                             </View>
                         </View>
                     </Modal>
@@ -375,12 +388,16 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate }) {
     );
 }
 
+// ... Stylesheets ...
 const styles = StyleSheet.create({
     container: {
         paddingHorizontal: 20
     },
     sectionContainer: {
-        marginBottom: 30,
+        marginBottom: 20,
+        borderBottomWidth: 1,
+        borderBottomColor: '#ccc',
+        paddingBottom: 20,
     },
     inputWrapper: {
         marginTop: 10,
@@ -404,10 +421,11 @@ const styles = StyleSheet.create({
         marginTop: 8,
         flexDirection: 'row',
         alignItems: 'center',
+        backgroundColor: '#fff',
     },
     input: {
         flex: 1,
-        marginLeft: '5%',
+        paddingHorizontal: 10,
         height: 40,
     },
     textAreaContainer: {
@@ -417,36 +435,20 @@ const styles = StyleSheet.create({
         marginTop: 8,
         padding: 5,
         height: 80,
+        backgroundColor: '#fff',
     },
     textArea: {
         flex: 1,
     },
     prefix: {
-        textAlign: 'center',
-        width: '25%',
+        paddingHorizontal: 10,
+        fontWeight: 'bold',
+        color: '#333',
     },
     buttonContainer: {
         flexDirection: 'row',
         justifyContent: 'center',
         marginBottom: 20,
-    },
-    button: {
-        height: 37,
-        width: 130,
-        borderRadius: 5,
-        alignItems: 'center',
-        justifyContent: 'center',
-        elevation: 4,
-    },
-    buttonText: {
-        color: '#fff',
-        fontWeight: '700',
-        fontSize: 16,
-    },
-    submitContainer: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        marginTop: 25,
     },
     removeButtonContainer: {
         flexDirection: 'row',
@@ -457,5 +459,50 @@ const styles = StyleSheet.create({
         color: 'red',
         fontSize: 12,
         marginTop: 5,
+    },
+    // Modal Styles
+
+    modalContanier: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    modalContent: {
+        width: "90%",
+        height: '40%',
+        borderRadius: 10,
+        backgroundColor: '#fff',
+        justifyContent: 'space-between',
+        padding: 20,
+    },
+    modalTitle: {
+        fontSize: 22,
+        fontWeight: '700',
+        textAlign: 'center',
+    },
+    lottieContainer: {
+        alignItems: 'center',
+        marginVertical: 10,
+    },
+    lottie: {
+        height: 120,
+        width: 120,
+    },
+    modalMessage: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#666666',
+        textAlign: 'center',
+        marginTop: 10,
+    },
+    closeButton: {
+        paddingVertical: 8,
+        paddingHorizontal: 20,
+        backgroundColor: '#b32d00',
+        borderRadius: 6,
+    },
+    closeButtonText: {
+        color: '#fff',
+        fontWeight: '700',
     },
 });
