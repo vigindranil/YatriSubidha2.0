@@ -9,7 +9,7 @@ import CustomiseSpringButton from './CustomiseSpringButton';
 export default function DynamicFormTemplate({ email, slotId, bookingDate }) {
     const [isLoading, setIsLoading] = useState(false);
     const [isModalVisible, setModalVisible] = useState(false);
-    const [finalResponse, setFinalResponse] = useState(null); // इसे null से शुरू करें
+    const [finalResponse, setFinalResponse] = useState(null);
     const [errors, setErrors] = useState({});
 
     const getInitialFields = () => [
@@ -118,8 +118,8 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate }) {
             const token = await AsyncStorage.getItem("user_login_token");
             if (!token) {
                 setFinalResponse({ success: false, message: "Authentication token not found. Please log in again." });
-                setIsLoading(false); // Loading ko yahan bhi band karein
-                setModalVisible(true); // Modal ko yahan bhi dikhayein
+                setIsLoading(false);
+                setModalVisible(true);
                 return;
             }
 
@@ -347,10 +347,15 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate }) {
                         />
                     </View>
 
-                    <Modal isVisible={isModalVisible}>
-                        <View style={styles.modalContanier}>
+                    <Modal 
+                        isVisible={isModalVisible}
+                        onBackdropPress={() => setModalVisible(false)}
+                        useNativeDriver={true}
+                        hideModalContentWhileAnimating={true}
+                    >
+                        <View style={styles.modalCenterView}>
                             <View style={styles.modalContent}>
-                                <View style={{ marginTop: 10 }}>
+                                <View>
                                     {finalResponse?.success ?
                                         (<>
                                             <Text style={styles.modalTitle}>Success !</Text>
@@ -368,13 +373,13 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate }) {
                                                     <LottieView
                                                         source={require('../Lottie/failed.json')}
                                                         autoPlay loop={false} style={styles.lottie}
-                                                    />
+                                                />
                                                 </View>
                                                 <Text style={styles.modalMessage}>{finalResponse?.message}</Text>
                                             </>
                                         )}
                                 </View>
-                                <View style={{ alignItems: 'center', marginBottom: 35 }}>
+                                <View style={styles.closeButtonContainer}>
                                     <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible(false)}>
                                         <Text style={styles.closeButtonText}>Close</Text>
                                     </TouchableOpacity>
@@ -388,7 +393,6 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate }) {
     );
 }
 
-// ... Stylesheets ...
 const styles = StyleSheet.create({
     container: {
         paddingHorizontal: 20
@@ -460,29 +464,26 @@ const styles = StyleSheet.create({
         fontSize: 12,
         marginTop: 5,
     },
-    // Modal Styles
-
-    modalContanier: {
+    modalCenterView: {
         flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     modalContent: {
-        width: "90%",
-        height: '40%',
-        borderRadius: 10,
+        width: '85%',
         backgroundColor: '#fff',
-        justifyContent: 'space-between',
+        borderRadius: 10,
         padding: 20,
     },
     modalTitle: {
         fontSize: 22,
         fontWeight: '700',
         textAlign: 'center',
+        marginTop: 10,
     },
     lottieContainer: {
         alignItems: 'center',
-        marginVertical: 10,
+        marginVertical: 15,
     },
     lottie: {
         height: 120,
@@ -494,15 +495,21 @@ const styles = StyleSheet.create({
         color: '#666666',
         textAlign: 'center',
         marginTop: 10,
+        marginBottom: 20,
+    },
+    closeButtonContainer: {
+        alignItems: 'center',
+        marginTop: 10,
     },
     closeButton: {
-        paddingVertical: 8,
-        paddingHorizontal: 20,
+        paddingVertical: 10,
+        paddingHorizontal: 30,
         backgroundColor: '#b32d00',
         borderRadius: 6,
     },
     closeButtonText: {
         color: '#fff',
         fontWeight: '700',
+        fontSize: 16,
     },
 });
