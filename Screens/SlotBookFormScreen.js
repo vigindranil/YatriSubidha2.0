@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import DynamicFormTemplate from '../ToolComponents/DynamicFormTemplate';
 
 const SlotBookFormScreen = ({ navigation, route }) => {
-    const { slotId, slot, bookingDate, slotTime } = route.params;
+    const { slotId, slot, bookingDate, slotTime ,journeyType} = route.params;
     const [email, setEmail] = useState(null);
 
 
@@ -27,6 +27,7 @@ const SlotBookFormScreen = ({ navigation, route }) => {
                 <View style={{ alignItems: 'center', paddingBottom: 8, marginTop: 5 }}>
                     <Text style={{ fontSize: 17, fontWeight: '800', color: '#0066cc', marginTop: 5 }}>{slot}</Text>
                     <Text style={{ color: '#737373', fontWeight: '600' }}>[ {bookingDate} , {slotTime} ]</Text>
+                                        <Text style={{ color: '#737373', fontWeight: '600' }}>[ {journeyType}]</Text>
                 </View>
                 <View style={{ marginBottom: 5 }}>
                     {/* <DynamicFormTemplateTwo /> */}

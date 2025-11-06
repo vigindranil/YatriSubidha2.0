@@ -34,8 +34,7 @@ const DateWiseSlotListScreen = ({ navigation }) => {
         return `${year}-${month}-${day}`;
     };
 
-    // *** HIGHLIGHT: Journey type ko local DB mein save karne ka function ***
-    const saveJourneyType = async (type) => {
+     const saveJourneyType = async (type) => {
         try {
             await AsyncStorage.setItem('selectedJourneyType', type);
             console.log(`Journey Type '${type}' local DB mein save ho gaya hai.`);
@@ -107,8 +106,7 @@ const DateWiseSlotListScreen = ({ navigation }) => {
             setFormattedDate(formattedToday);
             setDate(today);
 
-            // *** HIGHLIGHT: Screen load hote hi saved Journey Type ko load karega ***
-            const loadJourneyType = async () => {
+             const loadJourneyType = async () => {
                 try {
                     const savedType = await AsyncStorage.getItem('selectedJourneyType');
                     if (savedType !== null) {
@@ -130,7 +128,7 @@ const DateWiseSlotListScreen = ({ navigation }) => {
     }, [formattedDate, journeyType]);
 
     const renderSlotItem = ({ item }) => {
-        return <SlotBookingCard slot={item} intendedDate={formattedDate} />;
+        return <SlotBookingCard slot={item} intendedDate={formattedDate} journeyType={journeyType} />;
     };
 
     const minimumDate = new Date();
