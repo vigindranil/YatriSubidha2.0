@@ -1,16 +1,50 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, ScrollView, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {
+    View, Text, TextInput, ScrollView, StyleSheet, ActivityIndicator,
+    TouchableOpacity, Modal, Pressable // Added Modal and Pressable for the dialog
+} from 'react-native';
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import Modal from 'react-native-modal';
-import LottieView from 'lottie-react-native';
 import CustomiseSpringButton from './CustomiseSpringButton';
 import RNPickerSelect from 'react-native-picker-select';
 
-export default function DynamicFormTemplate({ email, slotId, bookingDate ,journeyType}) {
+// =================================================================
+//  1. COPIED CUSTOM DIALOG COMPONENT FROM LOGIN SCREEN
+// =================================================================
+const CustomAlertDialog = ({ visible, title, message, onClose }) => {
+    return (
+        <Modal
+            animationType="fade"
+            transparent={true}
+            visible={visible}
+            onRequestClose={onClose}
+        >
+            <Pressable style={styles.modalOverlay} onPress={onClose}>
+                <View style={styles.dialogContainer}>
+                    <Text style={styles.dialogTitle}>{title}</Text>
+                    <Text style={styles.dialogMessage}>{message}</Text>
+                    <TouchableOpacity style={styles.dialogButton} onPress={onClose}>
+                        <Text style={styles.dialogButtonText}>OK</Text>
+                    </TouchableOpacity>
+                </View>
+            </Pressable>
+        </Modal>
+    );
+};
+// =================================================================
+
+
+export default function DynamicFormTemplate({ slotId, bookingDate }) {
     const [isLoading, setIsLoading] = useState(false);
-    const [isModalVisible, setModalVisible] = useState(false);
-    const [finalResponse, setFinalResponse] = useState(null);
     const [errors, setErrors] = useState({});
+    const [loggedInUserEmail, setLoggedInUserEmail] = useState('');
+
+    // =================================================================
+    //  2. REPLACED OLD MODAL STATES WITH NEW DIALOG STATES
+    // =================================================================
+    const [isDialogVisible, setIsDialogVisible] = useState(false);
+    const [dialogTitle, setDialogTitle] = useState('');
+    const [dialogMessage, setDialogMessage] = useState('');
+    // =================================================================
 
     const getInitialFields = () => [
         { key: 'name', placeholder: 'Enter Name', label: 'Name', value: '' },
@@ -23,6 +57,41 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate ,journe
 
     const [sections, setSections] = useState([{ id: 1, fields: getInitialFields() }]);
     const [nextId, setNextId] = useState(2);
+
+    useEffect(() => {
+        const loadUserData = async () => {
+            try {
+                const userDataString = await AsyncStorage.getItem('user_data');
+                if (userDataString) {
+                    const userData = JSON.parse(userDataString);
+                    const userEmail = userData.username;
+
+                    if (userEmail) {
+                        setLoggedInUserEmail(userEmail);
+                        setSections(currentSections => {
+                            const newSections = [...currentSections];
+                            if (newSections.length > 0) {
+                                newSections[0] = {
+                                    ...newSections[0],
+                                    fields: newSections[0].fields.map(field => {
+                                        if (field.key === 'email') {
+                                            return { ...field, value: userEmail };
+                                        }
+                                        return field;
+                                    })
+                                };
+                            }
+                            return newSections;
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to load user data into form:", error);
+            }
+        };
+
+        loadUserData();
+    }, []);
 
     const nationalityOptions = [
         { label: 'Indian', value: 'Indian' },
@@ -37,7 +106,12 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate ,journe
     ];
 
     const addSection = () => {
-        setSections([...sections, { id: nextId, fields: getInitialFields() }]);
+        const newFields = getInitialFields();
+        const emailField = newFields.find(field => field.key === 'email');
+        if (emailField && loggedInUserEmail) {
+            emailField.value = loggedInUserEmail;
+        }
+        setSections([...sections, { id: nextId, fields: newFields }]);
         setNextId(nextId + 1);
     };
 
@@ -68,13 +142,11 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate ,journe
             return section;
         }));
 
-        // Inline validation
         const newErrors = { ...errors };
         if (!newErrors[sectionId]) newErrors[sectionId] = {};
 
         if (fieldKey === 'name') {
-            if (!text) newErrors[sectionId].name = 'Name is required';
-            else delete newErrors[sectionId].name;
+            if (!text) newErrors[sectionId].name = 'Name is required'; else delete newErrors[sectionId].name;
         } else if (fieldKey === 'email') {
             if (!text) newErrors[sectionId].email = 'Email Address is required';
             else if (!/\S+@\S+\.\S+/.test(text)) newErrors[sectionId].email = 'Invalid email address';
@@ -94,7 +166,6 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate ,journe
         if (Object.keys(newErrors[sectionId]).length === 0) {
             delete newErrors[sectionId];
         }
-
         setErrors(newErrors);
     };
 
@@ -119,7 +190,9 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate ,journe
         return Object.keys(newErrors).length === 0;
     };
 
-
+    // =================================================================
+    //  3. MODIFIED handleSubmit TO USE THE NEW DIALOG
+    // =================================================================
     const handleSubmit = async () => {
         if (!validate()) {
             return;
@@ -129,9 +202,10 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate ,journe
         try {
             const token = await AsyncStorage.getItem("user_login_token");
             if (!token) {
-                setFinalResponse({ success: false, message: "Authentication token not found. Please log in again." });
+                setDialogTitle("Authentication Error");
+                setDialogMessage("Token not found. Please log in again.");
+                setIsDialogVisible(true);
                 setIsLoading(false);
-                setModalVisible(true);
                 return;
             }
 
@@ -157,25 +231,16 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate ,journe
             formdata.append("PassengerInformation", JSON.stringify(passengerInformation));
             formdata.append("PrefferedSlotID", slotId);
             formdata.append("JourneyDate", bookingDate);
-            formdata.append("AuthInfo", JSON.stringify({
-                SessionID: "123", IPaddress: "192.168.1.1", MACAddress: "123456", OSversion: "MAC"
-            }));
+            formdata.append("AuthInfo", JSON.stringify({ SessionID: "123", IPaddress: "192.168.1.1", MACAddress: "123456", OSversion: "MAC" }));
             formdata.append("Type", "2");
 
             const myHeaders = new Headers();
             myHeaders.append("Authorization", token);
 
-            const requestOptions = {
-                method: "POST",
-                headers: myHeaders,
-                body: formdata,
-                redirect: "follow",
-            };
+            const requestOptions = { method: "POST", headers: myHeaders, body: formdata, redirect: "follow" };
 
             const response = await fetch("https://yatrisubidha.wb.gov.in/service/savePassengerSlotBooking", requestOptions);
             const resultText = await response.text();
-            console.log("Booking Save Result:", resultText);
-
 
             let resultJson;
             try {
@@ -185,28 +250,42 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate ,journe
             }
 
             if (resultJson.status === 0) {
-                setFinalResponse({ success: true, message: resultJson.message || "Booking saved successfully!" });
+                setDialogTitle("Success!");
+                setDialogMessage(resultJson.message || "Booking saved successfully!");
+                setIsDialogVisible(true);
                 setSections([{ id: 1, fields: getInitialFields() }]);
                 setNextId(2);
                 setErrors({});
             } else if (resultText.includes("INVALID_TOKEN") || resultText.includes("expire")) {
-                setFinalResponse({ success: false, message: "Session expired. Please log in again." });
+                setDialogTitle("Session Expired");
+                setDialogMessage("Your session has expired. Please log in again.");
+                setIsDialogVisible(true);
             } else {
-                setFinalResponse({ success: false, message: resultJson.message || "Failed to save booking." });
+                setDialogTitle("Booking Failed");
+                setDialogMessage(resultJson.message || "Failed to save booking. Please try again.");
+                setIsDialogVisible(true);
             }
 
         } catch (error) {
             console.error('Error in saving booking:', error);
-            setFinalResponse({ success: false, message: "An error occurred. Please check your internet connection." });
+            setDialogTitle("Error");
+            setDialogMessage("An unexpected error occurred. Please check your connection and try again.");
+            setIsDialogVisible(true);
         } finally {
             setIsLoading(false);
-            setModalVisible(true);
         }
     };
-
+    // =================================================================
 
     return (
         <>
+            <CustomAlertDialog
+                visible={isDialogVisible}
+                title={dialogTitle}
+                message={dialogMessage}
+                onClose={() => setIsDialogVisible(false)}
+            />
+
             {isLoading ? (
                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                     <ActivityIndicator size="large" color="#4123d0" />
@@ -215,7 +294,7 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate ,journe
                 <ScrollView contentContainerStyle={styles.container}>
                     {sections.map((section) => (
                         <View key={section.id} style={styles.sectionContainer}>
-
+                            {/* All TextInput and other form elements are here */}
                             <View style={{ marginTop: 10 }}>
                                 <Text style={styles.label}>Name<Text style={styles.required}> *</Text></Text>
                                 <View style={styles.inputContainer}>
@@ -361,41 +440,7 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate ,journe
                         />
                     </View>
 
-                    <Modal isVisible={isModalVisible}>
-                        <View style={styles.modalContanier}>
-                            <View style={styles.modalContent}>
-                                <View style={{ marginTop: 10 }}>
-                                    {finalResponse?.success ?
-                                        (<>
-                                            <Text style={styles.modalTitle}>Success !</Text>
-                                            <View style={styles.lottieContainer}>
-                                                <LottieView
-                                                    source={require('../Lottie/sucess.json')}
-                                                    autoPlay loop={false} style={styles.lottie}
-                                                />
-                                            </View>
-                                            <Text style={styles.modalMessage}>{finalResponse?.message}</Text>
-                                        </>) : (
-                                        <>
-                                            <Text style={styles.modalTitle}>Booking Failed !</Text>
-                                            <View style={styles.lottieContainer}>
-                                                <LottieView
-                                                    source={require('../Lottie/failed.json')}
-                                                    autoPlay loop={false} style={styles.lottie}
-                                                />
-                                            </View>
-                                            <Text style={styles.modalMessage}>{finalResponse?.message}</Text>
-                                        </>
-                                    )}
-                                </View>
-                                <View style={{ alignItems: 'center', marginBottom: 35 }}>
-                                    <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible(false)}>
-                                        <Text style={styles.closeButtonText}>Close</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
-                        </View>
-                    </Modal>
+                    {/* The old Lottie modal has been removed */}
                 </ScrollView>
             )}
         </>
@@ -482,52 +527,55 @@ const styles = StyleSheet.create({
         fontSize: 12,
         marginTop: 5,
     },
-    // Modal Styles
 
-    modalContanier: {
-
+    // =================================================================
+    //  4. ADDED DIALOG STYLES AND REMOVED OLD MODAL STYLES
+    // =================================================================
+    modalOverlay: {
         flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    modalContent: {
-        width: "90%",
-        height: '40%',
-        borderRadius: 10,
-        backgroundColor: '#fff',
-        justifyContent: 'space-between',
-        padding: 20,
-    },
-    modalTitle: {
-        fontSize: 22,
-        fontWeight: '700',
-        textAlign: 'center',
-    },
-    lottieContainer: {
+        justifyContent: 'center',
         alignItems: 'center',
-        marginVertical: 10,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
     },
-    lottie: {
-        height: 120,
-        width: 120,
+    dialogContainer: {
+        width: '85%',
+        padding: 20,
+        backgroundColor: 'white',
+        borderRadius: 10,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5,
     },
-    modalMessage: {
+    dialogTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginBottom: 15,
+        color: '#333',
+    },
+    dialogMessage: {
         fontSize: 16,
-        fontWeight: '600',
-        color: '#666666',
         textAlign: 'center',
-        marginTop: 10,
+        marginBottom: 20,
+        color: '#555',
     },
-    closeButton: {
-        paddingVertical: 8,
-        paddingHorizontal: 20,
-        backgroundColor: '#b32d00',
-        borderRadius: 6,
+    dialogButton: {
+        backgroundColor: '#4123d0',
+        paddingVertical: 10,
+        paddingHorizontal: 30,
+        borderRadius: 5,
     },
-    closeButtonText: {
-        color: '#fff',
-        fontWeight: '700',
+    dialogButtonText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: 'bold',
     },
+    // =================================================================
 });
 
 const pickerSelectStyles = StyleSheet.create({

@@ -235,7 +235,8 @@ const styles = StyleSheet.create({
         height: 34,
         minWidth: 130,
         borderRadius: 18,
-        marginRight: 6,
+        marginRight: 0,
+        
         marginTop: 2,
         flexDirection: 'row',
         alignItems: 'center',
