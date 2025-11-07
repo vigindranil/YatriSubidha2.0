@@ -38,7 +38,8 @@ const MenuListComponent = ({click}) => {
     const handleCardPress = (serviceName) => {
         if (serviceName === 'Book Slot') {
             navigation.navigate('StackNavigatorBooking', { screen: 'DateWiseSlotListScreen' });
-        } else {
+        } 
+         else {
             setDialogService(serviceName);
             setDialogVisible(true);
         }
@@ -206,6 +207,7 @@ const MenuListComponent = ({click}) => {
                         onPress={() => handleCardPress('Mobile Sim')}
                         clickable={click}
                     />
+                   
                     <View style={menuStyles.emptyCard} />
                 </View>
             </View>
@@ -293,6 +295,7 @@ const menuStyles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingHorizontal: 4,
         marginBottom: 16,
+        gap: 10,
     },
     emptyCard: {
         height: 100,

@@ -182,7 +182,7 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate, journe
       JourneyDate: bookingDate ,
       Time: SlotTime,
       PassportNo: passportNum,
-      QRCodeData: `TICKET:${ticketId}|NAME:${passengerName}|DATE:${bookingDate || '2023-08-16'}|SLOT:${slotLabel}`,
+      QRCodeData: `TICKET:${ticketId}|NAME:${passengerName}|DATE:${bookingDate }|SLOT:${slotLabel}`,
       NotesEn: 'N.B: This facility is provided free of cost as of now.',
       NotesBn: 'সতর্কীকরণঃ এই সুবিধাটি বর্তমানে বিনামূল্যে প্রদান করা হয়।'
     };

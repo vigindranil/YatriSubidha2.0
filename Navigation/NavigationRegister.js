@@ -27,6 +27,8 @@ import ServiceScreen from '../Screens/ServicesScreen';
 import AccountUserProfileScreen from '../Screens/AccountUserProfileScreen';
 import SearchScreen from '../Screens/SearchScreen';
 import SplashScreen from '../Components/SplashScreen';
+import BookingHistoryScreen from '../Screens/BookingHistoryScreen';
+
 
 const NavigationRegister = () => {
 
@@ -71,6 +73,14 @@ const NavigationRegister = () => {
                         tabBarStyle: { display: 'none' }
                     }}
                 />
+                {/* <Stack.Screen
+                    name='BookingHistoryScreen'
+                    component={BookingHistoryScreen}
+                    options={{
+                        header: () => <CustomHeader title=" " />,
+                        tabBarStyle: { display: 'none' }
+                    }}
+                /> */}
             </Stack.Navigator>
         )
     }
@@ -266,13 +276,16 @@ const NavigationRegister = () => {
                         tabBarIcon: ({ focused }) => focused ? (<Entypo name="magnifying-glass" size={24} color="#4123d0" />) : (<Entypo name="magnifying-glass" size={24} color="#808080" />)
                     }}
                 /> */}
-                <Tab.Screen name='TempPageList' component={TempPageList}
+                <Tab.Screen
+                    name='BookingHistoryScreen'
+                    component={BookingHistoryScreen}
                     options={{
-                        tabBarLabel: 'Search',
+                        tabBarLabel: 'History',
                         tabBarLabelStyle: { color: '#4123d0' },
                         header: () => <CustomHeader title=" " />,
-                        // headerShown: false,
-                        tabBarIcon: ({ focused }) => focused ? (<Entypo name="magnifying-glass" size={24} color="#4123d0" />) : (<Entypo name="magnifying-glass" size={24} color="#808080" />)
+                        tabBarIcon: ({ focused }) => focused
+                            ? (<AntDesign name="profile" size={24} color="#4123d0" />)
+                            : (<AntDesign name="profile" size={24} color="#808080" />)
                     }}
                 />
                 <Tab.Screen name='StackNavigatorAccount' component={StackNavigatorAccount}
