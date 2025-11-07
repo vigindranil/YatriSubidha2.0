@@ -14,6 +14,8 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate, journe
   const [isModalVisible, setModalVisible] = useState(false);
   const [finalResponse, setFinalResponse] = useState(null);
   const [errors, setErrors] = useState({});
+  const [ticketDetailsArray, setTicketDetailsArray] = useState([]);
+
 
   // --- State to hold the logged-in user's email ---
   const [loggedInUserEmail, setLoggedInUserEmail] = useState('');
@@ -171,18 +173,18 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate, journe
     return Object.keys(newErrors).length === 0;
   };
 
-  const mockFetchTicketDetails = async ({ slotId, bookingDate, passenger }) => {
+  const mockFetchTicketDetails = async ({ slotId, bookingDate, passengerName,tokenNo,SlotTime,PassportNo }) => {
     await new Promise(r => setTimeout(r, 600));
-    const ticketId = '20230816-02-000003';
-    const slotLabel = `SLOT-${String(slotId || 2)}`;
+    const ticketId = tokenNo;
+    const slotLabel = String(slotId);
     return {
       TicketID: ticketId,
-      PassengerName: passenger?.FullName || 'Akash Singh',
+      PassengerName: passengerName,
       Slot: slotLabel,
-      JourneyDate: bookingDate || '2023-08-16',
-      Time: '07:00 AM - 08:00 AM',
-      PassportNo: passenger?.PassportNo || 'A5DFLK454',
-      QRCodeData: `TICKET:${ticketId}|NAME:${passenger?.FullName || 'Akash Singh'}|DATE:${bookingDate || '2023-08-16'}|SLOT:${slotLabel}`,
+      JourneyDate: bookingDate,
+      Time: SlotTime,
+      PassportNo: PassportNo,
+      QRCodeData: `TICKET:${ticketId}|NAME:${passengerName}|DATE:${bookingDate}|SLOT:${slotLabel}`,
       NotesEn: 'N.B: This facility is provided free of cost as of now.',
       NotesBn: 'সতর্কীকরণঃ এই সুবিধাটি বর্তমানে বিনামূল্যে প্রদান করা হয়।'
     };
@@ -288,6 +290,8 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate, journe
   };
 
   const generateTicketPDF = async (ticketData) => {
+
+    console.log("ticket",ticketData);
     try {
       const html = buildTicketHTML(ticketData);
       const { uri } = await Print.printToFileAsync({ html });
@@ -373,13 +377,36 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate, journe
         setNextId(2);
         setErrors({});
 
-        const firstPassenger = passengerInformation[0] || {};
-        const ticketDetails = await mockFetchTicketDetails({
-          slotId: slotId || 2,
-          bookingDate,
-          passenger: firstPassenger
-        });
-        await generateTicketPDF(ticketDetails);
+        // console.log("data",resultJson.data[0])
+
+        // const firstPassenger = passengerInformation[0] || {};
+
+        // let ticketDetails;
+
+        resultJson.data?.map(async ({SlotName,PasengerName,TokenNo,SlotTime,PassportNo})=>{
+            const ticketDetails = await mockFetchTicketDetails({
+                slotId: SlotName,
+                bookingDate,
+                passengerName:  PasengerName,
+                tokenNo :  TokenNo,
+                SlotTime:  SlotTime,
+                PassportNo: PassportNo,
+            });
+           
+        })
+
+        await generateTicketPDF(ticketDetailsArray);
+
+        
+        //  ticketDetails = await mockFetchTicketDetails({
+        //   slotId: resultJson.data[0].SlotName,
+        //   bookingDate,
+        //   passengerName:  resultJson.data[0].PasengerName,
+        //   tokenNo :  resultJson.data[0].TokenNo,
+        //   SlotTime:  resultJson.data[0].SlotTime,
+        //   PassportNo:  resultJson.data[0].PassportNo,
+        // });
+        // await generateTicketPDF(ticketDetails);
 
       } else if (resultText.includes("INVALID_TOKEN") || resultText.includes("expire")) {
         setFinalResponse({ success: false, message: "Session expired. Please log in again." });
