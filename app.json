@@ -6,6 +6,9 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "extra": {
+      "apiBaseUrl": "https://yatrisubidha.wb.gov.in/service"
+    },
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",

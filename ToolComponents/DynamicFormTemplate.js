@@ -191,7 +191,7 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate, journe
   // --- बदला हुआ: सभी टिकटों के लिए एक HTML स्ट्रिंग बनाता है ---
   const buildAllTicketsHTML = (tickets) => {
     const ticketHTMLs = tickets.map(d => {
-      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(d.QRCodeData)}`;
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(d.QRCodeData.split('|')[0])}`;
       return `
         <div class="ticket-wrapper">
           <div class="ticket">
@@ -279,12 +279,32 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate, journe
 
     try {
       const token = await AsyncStorage.getItem("user_login_token");
+
+      
       if (!token) {
         setFinalResponse({ success: false, message: "Authentication token not found. Please log in again." });
         setIsLoading(false);
         setModalVisible(true);
         return;
       }
+
+      const userDataRaw = await AsyncStorage.getItem("user_data");
+      let userId;
+      if (userDataRaw) {
+        try {
+          const userDataParsed = JSON.parse(userDataRaw);
+          userId = userDataParsed?.userid;
+        } catch (parseErr) {}
+      }
+
+      if (!userId) {
+        setFinalResponse({ success: false, message: "User Id not Found" });
+        setIsLoading(false);
+        setModalVisible(true);
+        return;
+      }
+
+      let Type = journeyType === "Arrival" ? "2" : "1";
 
       const passengerInformation = sections.map(section => {
         const passenger = {};
@@ -311,7 +331,8 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate, journe
       formdata.append("AuthInfo", JSON.stringify({
         SessionID: "123", IPaddress: "192.168.1.1", MACAddress: "123456", OSversion: "MAC"
       }));
-      formdata.append("Type", "2");
+      formdata.append("Type",Type);
+      formdata.append("UserID", userId);
 
       const myHeaders = new Headers();
       myHeaders.append("Authorization", token);

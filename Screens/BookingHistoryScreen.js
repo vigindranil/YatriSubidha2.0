@@ -20,6 +20,7 @@ import * as Sharing from "expo-sharing";
 import * as FileSystem from "expo-file-system";
 import Modal from 'react-native-modal';
 import LottieView from 'lottie-react-native';
+// import Constants from "expo-constants";
 
 // Correct helper: show "Not Avaiable" for bad values (even 0 as string except for VisaNo is allowed to show)
 function notAvaiable(v) {
@@ -74,11 +75,16 @@ const BookingHistoryScreen = () => {
   const [errors, setErrors] = useState({});
   const today = new Date();
 
+//   const { apiBaseUrl } = Constants.expoConfig.extra;
+
+//   console.log("api",apiBaseUrl)
+
   const buildAllTicketsHTML = (tickets) => {
     const ticketHTMLs = tickets
       .map((d) => {
+
         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(
-          d.QRCodeData
+            d.QRCodeData.split('|')[0]
         )}`;
         return `
         <div class="ticket-wrapper">
@@ -285,7 +291,7 @@ const BookingHistoryScreen = () => {
 
     try {
       const userDataRaw = await AsyncStorage.getItem("user_data");
-      let userId = undefined;
+      let userId;
       if (userDataRaw) {
         try {
           const userDataParsed = JSON.parse(userDataRaw);
@@ -593,10 +599,10 @@ const BookingHistoryScreen = () => {
                     />
                   </View>
                   <Text style={styles.modalTitleSuccess}>
-                    Booking Successful!
+                    Generate Ticket Successfull!
                   </Text>
                   <Text style={styles.modalMessage}>
-                    {finalResponse?.message}
+                    {"Fetch Succesfully"}
                   </Text>
                 </>
               ) : (
@@ -609,9 +615,9 @@ const BookingHistoryScreen = () => {
                       style={styles.lottie}
                     />
                   </View>
-                  <Text style={styles.modalTitleError}>Booking Failed</Text>
+                  <Text style={styles.modalTitleError}>Generate Ticket Unsuccessfull</Text>
                   <Text style={styles.modalMessage}>
-                    {finalResponse?.message}
+                    {"Something went wrong while generating your ticket. Please try again or contact support if the issue persists."}
                   </Text>
                 </>
               )}
@@ -709,12 +715,12 @@ const styles = StyleSheet.create({
   // More visually appealing Floating Clear Button
   fabClearBtnBetter: {
     position: "absolute",
-    bottom: Platform.OS === "ios" ? 38 : 26,
+    bottom: 15,
     right: 22,
     flexDirection: "row",
     backgroundColor: "#6C47DE",
     borderRadius: 26,
-    paddingVertical: 12,
+    paddingVertical: 10,
     paddingHorizontal: 24,
     alignItems: "center",
     justifyContent: "center",
@@ -724,6 +730,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.26,
     shadowOffset: { width: 0, height: 7 },
     zIndex: 200,
+    
   },
   fabClearBtnText: {
     color: "#fff",
@@ -885,7 +892,7 @@ const styles = StyleSheet.create({
   modalContent: { width: '90%', backgroundColor: '#FFFFFF', borderRadius: 24, padding: 30, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.2, shadowRadius: 20, elevation: 10 },
   lottieContainer: { alignItems: 'center', marginBottom: 15 },
   lottie: { height: 140, width: 140 },
-  modalTitleSuccess: { fontSize: 24, fontWeight: '700', color: '#00B894', marginBottom: 12 },
+  modalTitleSuccess: { fontSize: 24, fontWeight: '700', color: '#00B894', marginBottom: 12, textAlign: "center" },
   modalTitleError: { fontSize: 24, fontWeight: '700', color: '#FF3B3B', marginBottom: 12 },
   modalMessage: { fontSize: 15, color: '#636E72', textAlign: 'center', lineHeight: 22, marginBottom: 25 },
   closeButton: { paddingVertical: 14, paddingHorizontal: 50, borderRadius: 12, minWidth: 150 },
