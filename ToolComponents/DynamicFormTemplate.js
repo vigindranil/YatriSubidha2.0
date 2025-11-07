@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'; // Added useEffect
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, ScrollView, StyleSheet, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Modal from 'react-native-modal';
@@ -17,7 +17,6 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate, journe
   const [ticketDetailsArray, setTicketDetailsArray] = useState([]);
 
 
-  // --- State to hold the logged-in user's email ---
   const [loggedInUserEmail, setLoggedInUserEmail] = useState('');
 
   const getInitialFields = () => [
@@ -32,19 +31,17 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate, journe
   const [sections, setSections] = useState([{ id: 1, fields: getInitialFields() }]);
   const [nextId, setNextId] = useState(2);
 
-  // --- Load user's email from AsyncStorage when component mounts ---
   useEffect(() => {
     const loadUserData = async () => {
       try {
         const userDataString = await AsyncStorage.getItem('user_data');
         if (userDataString) {
           const userData = JSON.parse(userDataString);
-          const userEmail = userData.username; // Get the email from stored data
+          const userEmail = userData.username;
 
           if (userEmail) {
-            setLoggedInUserEmail(userEmail); // Store email for later use
+            setLoggedInUserEmail(userEmail);
             
-            // Update the email field of the first section
             setSections(currentSections => {
               const newSections = [...currentSections];
               if (newSections.length > 0) {
@@ -68,7 +65,7 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate, journe
     };
 
     loadUserData();
-  }, []); // Empty array ensures this runs only once
+  }, []);
 
   const nationalityOptions = [
     { label: 'Indian', value: 'Indian' },
@@ -82,11 +79,9 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate, journe
     { label: 'Chinese', value: 'Chinese' },
   ];
 
-  // --- Modified addSection to pre-fill email ---
   const addSection = () => {
     const newFields = getInitialFields();
     
-    // Find the email field and set its value from the stored email state
     const emailField = newFields.find(field => field.key === 'email');
     if (emailField && loggedInUserEmail) {
         emailField.value = loggedInUserEmail;
@@ -173,143 +168,111 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate, journe
     return Object.keys(newErrors).length === 0;
   };
 
-  const mockFetchTicketDetails = async ({ slotId, bookingDate, passengerName,tokenNo,SlotTime,PassportNo }) => {
-    await new Promise(r => setTimeout(r, 600));
+   const mockFetchTicketDetails = async ({ slotId, bookingDate,passengerNam,tokenNo,SlotTime,PassportNo }) => {
+    await new Promise(r => setTimeout(r, 200)); 
     const ticketId = tokenNo;
     const slotLabel = String(slotId);
+    const passengerName = passengerNam;
+    const passportNum = PassportNo;
+    
     return {
       TicketID: ticketId,
       PassengerName: passengerName,
       Slot: slotLabel,
-      JourneyDate: bookingDate,
+      JourneyDate: bookingDate ,
       Time: SlotTime,
-      PassportNo: PassportNo,
-      QRCodeData: `TICKET:${ticketId}|NAME:${passengerName}|DATE:${bookingDate}|SLOT:${slotLabel}`,
+      PassportNo: passportNum,
+      QRCodeData: `TICKET:${ticketId}|NAME:${passengerName}|DATE:${bookingDate || '2023-08-16'}|SLOT:${slotLabel}`,
       NotesEn: 'N.B: This facility is provided free of cost as of now.',
       NotesBn: 'সতর্কীকরণঃ এই সুবিধাটি বর্তমানে বিনামূল্যে প্রদান করা হয়।'
     };
   };
-
-  const buildTicketHTML = (d) => {
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(d.QRCodeData)}`;
+  
+  // --- बदला हुआ: सभी टिकटों के लिए एक HTML स्ट्रिंग बनाता है ---
+  const buildAllTicketsHTML = (tickets) => {
+    const ticketHTMLs = tickets.map(d => {
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(d.QRCodeData)}`;
+      return `
+        <div class="ticket-wrapper">
+          <div class="ticket">
+            <div class="left">
+              <div class="slot">${d.Slot}</div>
+              <div class="qr"><img src="${qrUrl}" alt="QR Code" /></div>
+            </div>
+            <div class="right">
+              <div class="ticket-id">${d.TicketID}</div>
+              <div class="name">${d.PassengerName}</div>
+              <div class="row">
+                <div><span class="label">📅 Date</span> <span>${d.JourneyDate}</span></div>
+                <div><span class="label">⏰ Time</span> <span>${d.Time}</span></div>
+              </div>
+              <div class="row">
+                <div><span class="label">🛂 Passport No.</span> <span class="muted">${d.PassportNo}</span></div>
+              </div>
+              <div class="divider"></div>
+              <div class="note">${d.NotesEn}</div>
+              <div class="note" style="margin-top: 6px;">${d.NotesBn}</div>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
 
     return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8" />
-      <title>Ticket</title>
-      <style>
-        @page { size: A4; margin: 24mm; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Noto Sans Bengali', 'Bangla Sangam MN', sans-serif; }
-        .ticket {
-          border: 2px dashed #D7DCE3;
-          border-radius: 16px;
-          display: flex;
-          overflow: hidden;
-          width: 100%;
-        }
-        .left {
-          width: 180px;
-          background: linear-gradient(180deg, #a076f1, #7c4dff);
-          padding: 20px 16px;
-          color: #fff;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 12px;
-        }
-        .slot {
-          font-weight: 800;
-          font-size: 16px;
-          letter-spacing: 0.5px;
-        }
-        .qr {
-          width: 130px;
-          height: 130px;
-          background: #fff;
-          border-radius: 10px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 8px;
-        }
-        .qr img { width: 100%; height: 100%; }
-        .right {
-          flex: 1;
-          padding: 24px 28px;
-        }
-        .ticket-id {
-          color: #7b83a1;
-          font-weight: 700;
-          font-size: 16px;
-          margin-bottom: 6px;
-        }
-        .name {
-          font-size: 28px;
-          font-weight: 800;
-          color: #2b2f3a;
-          margin: 6px 0 14px;
-        }
-        .row { display: flex; gap: 28px; margin: 8px 0 2px; color: #4b5363; }
-        .label { font-weight: 700; margin-right: 8px; }
-        .muted { color: #9aa2b1; }
-        .divider { border-bottom: 1px solid #eceff4; margin: 16px 0; }
-        .note { color: #4b5363; font-size: 12.5px; }
-      </style>
-    </head>
-    <body>
-      <div class="ticket">
-        <div class="left">
-          <div class="slot">${d.Slot}</div>
-          <div class="qr">
-            <img src="${qrUrl}" />
-          </div>
-        </div>
-        <div class="right">
-          <div class="ticket-id">${d.TicketID}</div>
-          <div class="name">${d.PassengerName}</div>
-
-          <div class="row">
-            <div><span class="label">📅 Date</span> <span>${d.JourneyDate}</span></div>
-            <div><span class="label">⏰ Time</span> <span>${d.Time}</span></div>
-          </div>
-
-          <div class="row">
-            <div><span class="label">🛂 Passport Number</span> <span class="muted">${d.PassportNo}</span></div>
-          </div>
-
-          <div class="divider"></div>
-
-          <div class="note">${d.NotesEn}</div>
-          <div class="note" style="margin-top: 6px;">${d.NotesBn}</div>
-        </div>
-      </div>
-    </body>
-    </html>`;
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>All Tickets</title>
+        <style>
+          @page { size: A4; margin: 20mm; }
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+          .ticket-wrapper { page-break-inside: avoid; margin-bottom: 20mm; }
+          .ticket-wrapper:last-child { margin-bottom: 0; }
+          .ticket { border: 2px dashed #D7DCE3; border-radius: 16px; display: flex; overflow: hidden; width: 100%; }
+          .left { width: 180px; background: linear-gradient(180deg, #a076f1, #7c4dff); padding: 20px 16px; color: #fff; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+          .slot { font-weight: 800; font-size: 16px; }
+          .qr { width: 130px; height: 130px; background: #fff; border-radius: 10px; display: flex; align-items: center; justify-content: center; padding: 8px; }
+          .qr img { width: 100%; height: 100%; }
+          .right { flex: 1; padding: 24px 28px; }
+          .ticket-id { color: #7b83a1; font-weight: 700; font-size: 16px; margin-bottom: 6px; }
+          .name { font-size: 28px; font-weight: 800; color: #2b2f3a; margin: 6px 0 14px; }
+          .row { display: flex; gap: 28px; margin: 8px 0 2px; color: #4b5363; }
+          .label { font-weight: 700; margin-right: 8px; }
+          .muted { color: #9aa2b1; }
+          .divider { border-bottom: 1px solid #eceff4; margin: 16px 0; }
+          .note { color: #4b5363; font-size: 12.5px; }
+        </style>
+      </head>
+      <body>${ticketHTMLs}</body>
+      </html>`;
   };
 
-  const generateTicketPDF = async (ticketData) => {
-
-    console.log("ticket",ticketData);
+  // --- बदला हुआ: एक PDF में सभी टिकट उत्पन्न और साझा करता है ---
+  const generateAndShareTicketsPDF = async (allTicketsData) => {
+    if (!allTicketsData || allTicketsData.length === 0) {
+      Alert.alert('Error', 'No ticket data found to generate PDF.');
+      return;
+    }
     try {
-      const html = buildTicketHTML(ticketData);
+      const html = buildAllTicketsHTML(allTicketsData);
       const { uri } = await Print.printToFileAsync({ html });
-      const filename = `YatriTicket_${ticketData.TicketID}.pdf`;
+      const filename = `YatriTickets_${allTicketsData[0].TicketID}.pdf`;
       const dest = FileSystem.documentDirectory + filename;
+      
       await FileSystem.moveAsync({ from: uri, to: dest });
 
       if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(dest);
+        await Sharing.shareAsync(dest, { dialogTitle: 'Share your tickets' });
       } else {
-        Alert.alert('Ticket Saved', `File saved to: ${dest}`);
+        Alert.alert('Tickets Saved', `File saved to: ${dest}`);
       }
     } catch (e) {
       console.log('PDF error:', e);
-      Alert.alert('Error', 'Failed to generate ticket PDF.');
+      Alert.alert('Error', 'Failed to generate tickets PDF.');
     }
   };
 
+  // --- बदला हुआ: सभी यात्रियों के लिए टिकट बनाने के लिए संशोधित ---
   const handleSubmit = async () => {
     if (!validate()) return;
     setIsLoading(true);
@@ -372,41 +335,40 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate, journe
       }
 
       if (resultJson.status === 0) {
-        setFinalResponse({ success: true, message: resultJson.message || "Booking saved successfully!" });
-        setSections([{ id: 1, fields: getInitialFields() }]);
-        setNextId(2);
-        setErrors({});
+        setFinalResponse({ success: true, message: resultJson.message || "Booking saved successfully! Generating tickets..." });
+        
+        // सभी यात्रियों के लिए टिकट विवरण प्राप्त करें
+        // const ticketDetailsPromises = passengerInformation.map((passenger, index) => 
+        //   mockFetchTicketDetails({
+        //     slotId: slotId || 2,
+        //     bookingDate,
+        //     passenger: passenger,
+        //     index: index, // अद्वितीय आईडी के लिए इंडेक्स पास करें
+        //   })
+        // );
 
-        // console.log("data",resultJson.data[0])
-
-        // const firstPassenger = passengerInformation[0] || {};
-
-        // let ticketDetails;
-
-        resultJson.data?.map(async ({SlotName,PasengerName,TokenNo,SlotTime,PassportNo})=>{
-            const ticketDetails = await mockFetchTicketDetails({
+        const ticketDetailsPromises=resultJson.data?.map(({SlotName,PasengerName,TokenNo,SlotTime,PassportNo})=>{
+             return mockFetchTicketDetails({
                 slotId: SlotName,
                 bookingDate,
-                passengerName:  PasengerName,
+                passengerNam:  PasengerName,
                 tokenNo :  TokenNo,
                 SlotTime:  SlotTime,
                 PassportNo: PassportNo,
+                
             });
            
         })
-
-        await generateTicketPDF(ticketDetailsArray);
-
+ 
         
-        //  ticketDetails = await mockFetchTicketDetails({
-        //   slotId: resultJson.data[0].SlotName,
-        //   bookingDate,
-        //   passengerName:  resultJson.data[0].PasengerName,
-        //   tokenNo :  resultJson.data[0].TokenNo,
-        //   SlotTime:  resultJson.data[0].SlotTime,
-        //   PassportNo:  resultJson.data[0].PassportNo,
-        // });
-        // await generateTicketPDF(ticketDetails);
+        const allTicketDetails = await Promise.all(ticketDetailsPromises);
+        
+        // सभी टिकटों के साथ PDF बनाएं
+        await generateAndShareTicketsPDF(allTicketDetails);
+
+        setSections([{ id: 1, fields: getInitialFields() }]);
+        setNextId(2);
+        setErrors({});
 
       } else if (resultText.includes("INVALID_TOKEN") || resultText.includes("expire")) {
         setFinalResponse({ success: false, message: "Session expired. Please log in again." });
@@ -422,6 +384,7 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate, journe
       setModalVisible(true);
     }
   };
+
 
   return (
     <View style={styles.mainContainer}>
@@ -446,7 +409,7 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate, journe
                 <View style={styles.passengerBadge}>
                   <Text style={styles.passengerBadgeText}>Passenger {index + 1}</Text>
                 </View>
-                {section.id !== 1 && (
+                {index !== 0 && (
                   <TouchableOpacity
                     onPress={() => removeSection(section.id)}
                     style={styles.removeButton}
