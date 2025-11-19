@@ -279,13 +279,15 @@ const BookingHistoryScreen = () => {
   };
 
   const fetchBookings = async () => {
-    if (!fromDate && !toDate) {
+    if (!fromDate || !toDate) {
       Alert.alert(
         "Select Date Range",
         'Please select at least a "From Date" or "To Date" to fetch your booking history.'
       );
       return;
     }
+
+    console.log(fromDate ,toDate )
     setLoading(true);
     setNoData(false);
     setError(null);

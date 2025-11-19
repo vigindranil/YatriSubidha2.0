@@ -644,4 +644,4 @@ const styles = StyleSheet.create({
         borderBottomRightRadius: 6,
         opacity: 0.25,
     },
-})
+});

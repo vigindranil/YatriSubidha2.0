@@ -100,6 +100,9 @@ const DateWiseSlotListScreen = () => {
         setSlotList([]);
         return;
       }
+
+      console.log("items",items);
+      console.log("data",formData)
  
       const normalized = items.map((it, idx) => ({
         id: it.SlotID || idx.toString(),
