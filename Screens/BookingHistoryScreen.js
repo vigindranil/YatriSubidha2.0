@@ -24,10 +24,10 @@ import LottieView from 'lottie-react-native';
 
 // Correct helper: show "Not Avaiable" for bad values (even 0 as string except for VisaNo is allowed to show)
 function notAvaiable(v) {
-  if (v === null || v === undefined) return "Not Avaiable";
+  if (v === null || v === undefined) return "Not Available";
   if (typeof v === "string") {
     if (v.trim() === "" || v.trim().toLowerCase() === "null")
-      return "Not Avaiable";
+      return "Not Available";
   }
   return v;
 }
@@ -78,6 +78,8 @@ const BookingHistoryScreen = () => {
 //   const { apiBaseUrl } = Constants.expoConfig.extra;
 
 //   console.log("api",apiBaseUrl)
+
+
 
   const buildAllTicketsHTML = (tickets) => {
     const ticketHTMLs = tickets
@@ -632,6 +634,7 @@ const BookingHistoryScreen = () => {
               >
                 <Text style={styles.closeButtonText}>Close</Text>
               </TouchableOpacity>
+              
             </View>
           </View>
         </Modal>

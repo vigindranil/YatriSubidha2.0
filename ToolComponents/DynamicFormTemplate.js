@@ -638,12 +638,74 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate, journe
                 <Text style={styles.modalMessage}>{finalResponse?.message}</Text>
               </>
             )}
-            <TouchableOpacity
-              style={[styles.closeButton, finalResponse?.success ? styles.closeButtonSuccess : styles.closeButtonError]}
-              onPress={() => setModalVisible(false)}
-            >
-              <Text style={styles.closeButtonText}>Close</Text>
-            </TouchableOpacity>
+            <View style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginTop: 10,
+              width: '100%',
+              gap: 0,
+            }}>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  marginRight: 6,
+                  minHeight: 36,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  backgroundColor: finalResponse?.success ? '#00B894' : '#FF3B3B',
+                  borderRadius: 9,
+                  paddingVertical: 7,
+                  paddingHorizontal: 0,
+                  maxWidth: '48%',
+                }}
+                onPress={() => setModalVisible(false)}
+                activeOpacity={0.88}
+              >
+                <Text style={{
+                  color: '#fff',
+                  textAlign: 'center',
+                  fontSize: 12,
+                  fontWeight: '600',
+                  width: '100%',
+                  flexShrink: 1,
+                  flexWrap: 'wrap',
+                }}>
+                  Close
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  marginLeft: 6,
+                  minHeight: 36,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  backgroundColor: '#6C5CE7',
+                  borderRadius: 9,
+                  paddingVertical: 7,
+                  paddingHorizontal: 0,
+                  maxWidth: '48%',
+                }}
+                onPress={() => {
+                  setModalVisible(false);
+                  navigation.navigate('DateWiseSlotListScreen');
+                }}
+                activeOpacity={0.88}
+              >
+                <Text style={{
+                  color: '#fff',
+                  textAlign: 'center',
+                  fontSize: 12,
+                  fontWeight: '600',
+                  width: '100%',
+                  flexShrink: 1,
+                  flexWrap: 'wrap',
+                }}>
+                  Go to Slot Booking
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
