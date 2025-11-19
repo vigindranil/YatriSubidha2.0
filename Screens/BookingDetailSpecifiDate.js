@@ -27,6 +27,8 @@ const BookingDetailSpecificDate = ({ navigation, route }) => {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const viewRefs = useRef({});
+
+    
     const fetchData = async () => {
         try {
             const { date } = route.params;

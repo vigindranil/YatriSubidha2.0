@@ -8,6 +8,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
+import { useNavigation } from '@react-navigation/native';
+import Constants from "expo-constants";
 
 export default function DynamicFormTemplate({ email, slotId, bookingDate, journeyType }) {
   const [isLoading, setIsLoading] = useState(false);
@@ -15,7 +17,8 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate, journe
   const [finalResponse, setFinalResponse] = useState(null);
   const [errors, setErrors] = useState({});
   const [ticketDetailsArray, setTicketDetailsArray] = useState([]);
-
+  const navigation = useNavigation();
+  const baseUrl = Constants.expoConfig.extra.apiBaseUrl;
 
   const [loggedInUserEmail, setLoggedInUserEmail] = useState('');
 
@@ -188,7 +191,7 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate, journe
     };
   };
   
-  // --- बदला हुआ: सभी टिकटों के लिए एक HTML स्ट्रिंग बनाता है ---
+   
   const buildAllTicketsHTML = (tickets) => {
     const ticketHTMLs = tickets.map(d => {
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(d.QRCodeData.split('|')[0])}`;
@@ -247,8 +250,7 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate, journe
       </html>`;
   };
 
-  // --- बदला हुआ: एक PDF में सभी टिकट उत्पन्न और साझा करता है ---
-  const generateAndShareTicketsPDF = async (allTicketsData) => {
+   const generateAndShareTicketsPDF = async (allTicketsData) => {
     if (!allTicketsData || allTicketsData.length === 0) {
       Alert.alert('Error', 'No ticket data found to generate PDF.');
       return;
@@ -272,8 +274,7 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate, journe
     }
   };
 
-  // --- बदला हुआ: सभी यात्रियों के लिए टिकट बनाने के लिए संशोधित ---
-  const handleSubmit = async () => {
+   const handleSubmit = async () => {
     if (!validate()) return;
     setIsLoading(true);
 
@@ -344,7 +345,25 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate, journe
         redirect: "follow",
       };
 
-      const response = await fetch("https://yatrisubidha.wb.gov.in/service/savePassengerSlotBooking", requestOptions);
+       const response = await fetch(`${baseUrl}/savePassengerSlotBooking`, requestOptions);
+      if (response.status===401) {
+          console.warn('Unauthorized (401): Session expired, resetting data and navigating.');
+          setFinalResponse({ success: false, message: "Session expired. Please log in again." });
+          setIsLoading(false);
+          setModalVisible(true);
+    
+     try {
+        await AsyncStorage.removeItem("user_login_token");
+        await AsyncStorage.removeItem("user_data");
+        console.log("AsyncStorage cleared: Token and User Data removed.");
+    } catch (e) {
+        console.error("Error clearing AsyncStorage:", e);
+    }
+
+    // 3. Login Screen par navigate karein
+    navigation.navigate('LoginScreen'); 
+    return;
+}
       const resultText = await response.text();
       console.log("Booking Save Result:", resultText);
 

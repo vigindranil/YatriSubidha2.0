@@ -18,6 +18,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getToken } from '../Axios_BaseUrl_Token_SetUp/getToken';
 import { fetchAndSetAuthToken } from '../Axios_BaseUrl_Token_SetUp/setToken';
 import SlotBookingCard from '../Components/SlotBookingCard';
+import { useNavigation } from '@react-navigation/native';
+
+
  
 const DateWiseSlotListScreen = () => {
   const [journeyType, setJourneyType] = useState('Arrival');
@@ -28,6 +31,8 @@ const DateWiseSlotListScreen = () => {
   const [slotList, setSlotList] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [todaysDate, setTodaysDate] = useState('');
+  const navigation = useNavigation();
+
  
   function formatDateToYMD(d) {
     const year = d.getFullYear();
@@ -75,8 +80,22 @@ const DateWiseSlotListScreen = () => {
         body: formData,
       });
  
+       if (res.status===401) {
+        console.warn('Unauthorized: Navigating to login screen.');
+        try{
+            await AsyncStorage.removeItem("user_login_token");
+            await AsyncStorage.removeItem("user_data");
+            console.log("AsyncStorage cleared: Token and User Data removed.");
+            }catch(e){
+            console.error("Error clearing AsyncStorage:", e);
+            }
+           navigation.navigate('LoginScreen');      
+             return;  
+      }
       const rawResponse = await res.json();
       const items = rawResponse?.Data || rawResponse?.data || rawResponse || [];
+
+
       if (!Array.isArray(items)) {
         setSlotList([]);
         return;

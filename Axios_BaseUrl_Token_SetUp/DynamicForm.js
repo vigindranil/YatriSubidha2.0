@@ -1,17 +1,24 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Constants from "expo-constants"; // 🆕 (NEW) — For dynamic base URL from app.json
 
- 
 const savePassengerBooking = async (bookingData) => {
   try {
-     const token = await AsyncStorage.getItem("user_login_token");
+    const token = await AsyncStorage.getItem("user_login_token");
     if (!token) {
-      return { success: false, message: "Authentication token not found. Please log in again.", data: null };
+      return {
+        success: false,
+        message: "Authentication token not found. Please log in again.",
+        data: null,
+      };
     }
 
-     const myHeaders = new Headers();
-    myHeaders.append("Authorization", token);  
+    // 🆕 (NEW) — Get base URL dynamically from app.json (extra.apiBaseUrl)
+    const baseUrl = Constants.expoConfig.extra.apiBaseUrl;
 
-     const formdata = new FormData();
+    const myHeaders = new Headers();
+    myHeaders.append("Authorization", token);
+
+    const formdata = new FormData();
     formdata.append("PassengerInformation", JSON.stringify(bookingData.passengerInfo));
     formdata.append("PrefferedSlotID", bookingData.slotId);
     formdata.append("JourneyDate", bookingData.journeyDate);
@@ -24,25 +31,22 @@ const savePassengerBooking = async (bookingData) => {
         OSversion: "MAC",
       })
     );
-    formdata.append("Type", "2");  
+    formdata.append("Type", "2");
 
-     const requestOptions = {
+    const requestOptions = {
       method: "POST",
       headers: myHeaders,
       body: formdata,
       redirect: "follow",
     };
 
-    // 5. Call the API
-    const response = await fetch(
-      "https://yatrisubidha.wb.gov.in/service/savePassengerSlotBooking",
-      requestOptions
-    );
+    // 🆕 (UPDATED) — Replaced hardcoded URL with dynamic base URL
+    const response = await fetch(`${baseUrl}/savePassengerSlotBooking`, requestOptions);
 
     const result = await response.text();
     console.log("Booking Save Result:", result);
 
-     if (result.includes("SUCCESS")) {
+    if (result.includes("SUCCESS")) {
       return { success: true, message: "Booking saved successfully!", data: result };
     } else if (result.includes("INVALID_TOKEN") || result.includes("expire")) {
       return { success: false, message: "Session expired. Please log in again.", data: result };

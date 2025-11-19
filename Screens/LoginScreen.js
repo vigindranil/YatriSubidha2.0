@@ -1,5 +1,5 @@
-import { SafeAreaView, StatusBar, StyleSheet, Text, View, Pressable, Image, TextInput, Dimensions, TouchableOpacity, ActivityIndicator, Modal } from 'react-native'
-import React, { useCallback, useEffect, useState } from 'react'
+import { SafeAreaView, StatusBar, StyleSheet, Text, View, Pressable, Image, TextInput, Dimensions, TouchableOpacity, ActivityIndicator, Modal, Animated } from 'react-native'
+import React, { useCallback, useEffect, useState, useRef } from 'react'
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import LoginSpringButton from '../ToolComponents/LoginSpringButton';
 import { Entypo } from '@expo/vector-icons';
@@ -15,24 +15,160 @@ import { setUserInfo } from '../Redux/setUserInfo';
 import sendOTP from "../Axios_BaseUrl_Token_SetUp/sendOtp.js"
 import { validateOTP } from "../Axios_BaseUrl_Token_SetUp/ValidateOtp.js"
 
-// Custom Dialog Component
-const CustomAlertDialog = ({ visible, title, message, onClose }) => {
+// Premium Custom Dialog Component - Simple without typing animation
+const CustomAlertDialog = ({ visible, title, message, onClose, type = "success" }) => {
+    const scaleValue = useRef(new Animated.Value(0)).current;
+    const fadeValue = useRef(new Animated.Value(0)).current;
+    const slideValue = useRef(new Animated.Value(50)).current;
+    const pulseValue = useRef(new Animated.Value(1)).current;
+
+    useEffect(() => {
+        if (visible) {
+            // Reset animations
+            scaleValue.setValue(0);
+            fadeValue.setValue(0);
+            slideValue.setValue(50);
+            
+            // Start entrance animations
+            Animated.parallel([
+                Animated.spring(scaleValue, {
+                    toValue: 1,
+                    tension: 50,
+                    friction: 7,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(fadeValue, {
+                    toValue: 1,
+                    duration: 300,
+                    useNativeDriver: true,
+                }),
+                Animated.spring(slideValue, {
+                    toValue: 0,
+                    tension: 50,
+                    friction: 8,
+                    useNativeDriver: true,
+                }),
+            ]).start();
+
+            // Icon pulse animation
+            const pulseAnimation = Animated.loop(
+                Animated.sequence([
+                    Animated.timing(pulseValue, {
+                        toValue: 1.1,
+                        duration: 1000,
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(pulseValue, {
+                        toValue: 1,
+                        duration: 1000,
+                        useNativeDriver: true,
+                    }),
+                ])
+            );
+            pulseAnimation.start();
+
+            // Cleanup function
+            return () => {
+                pulseAnimation.stop();
+            };
+        }
+    }, [visible]);
+
+    if (!visible) return null;
+
+    const isSuccess = type === "success" || title.toLowerCase().includes("success");
+    const isError = type === "error" || title.toLowerCase().includes("error") || title.toLowerCase().includes("failed");
+    
+    const primaryColor = isError ? "#FF3B30" : "#34C759";
+    const secondaryColor = isError ? "#FF6B6B" : "#66E07D";
+    const iconEmoji = isError ? "⚠️" : "✓";
+    const iconBgColor = isError ? "#FFE5E5" : "#E5F9E5";
+
     return (
         <Modal
-            animationType="fade"
+            animationType="none"
             transparent={true}
             visible={visible}
             onRequestClose={onClose}
         >
-            <Pressable style={styles.modalOverlay} onPress={onClose}>
-                <View style={styles.modalContainer}>
-                    <Text style={styles.modalTitle}>{title}</Text>
-                    <Text style={styles.modalMessage}>{message}</Text>
-                    <TouchableOpacity style={styles.modalButton} onPress={onClose}>
-                        <Text style={styles.modalButtonText}>OK</Text>
-                    </TouchableOpacity>
-                </View>
-            </Pressable>
+            <Animated.View style={[styles.modalOverlay, { opacity: fadeValue }]}>
+                <Pressable style={styles.modalOverlayPressable} onPress={onClose}>
+                    <Animated.View
+                        style={[
+                            styles.modalContainer,
+                            {
+                                transform: [
+                                    { scale: scaleValue },
+                                    { translateY: slideValue }
+                                ],
+                            },
+                        ]}
+                        onStartShouldSetResponder={() => true}
+                    >
+                        {/* Decorative Header Bar */}
+                        <LinearGradient
+                            colors={[primaryColor, secondaryColor]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={styles.modalHeaderBar}
+                        >
+                            <View style={styles.headerDots}>
+                                <View style={styles.headerDot} />
+                                <View style={styles.headerDot} />
+                                <View style={styles.headerDot} />
+                            </View>
+                        </LinearGradient>
+
+                        {/* Animated Icon Container */}
+                        <Animated.View
+                            style={[
+                                styles.iconContainer,
+                                { 
+                                    backgroundColor: iconBgColor,
+                                    transform: [{ scale: pulseValue }]
+                                },
+                            ]}
+                        >
+                            <LinearGradient
+                                colors={[primaryColor, secondaryColor]}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                                style={styles.iconGradient}
+                            >
+                                <Text style={styles.iconText}>{iconEmoji}</Text>
+                            </LinearGradient>
+                        </Animated.View>
+
+                        {/* Content - Direct display without typing */}
+                        <View style={styles.contentContainer}>
+                            <Text style={[styles.modalTitle, { color: primaryColor }]}>
+                                {title}
+                            </Text>
+                            <Text style={styles.modalMessage}>{message}</Text>
+                        </View>
+
+                        {/* Action Button */}
+                        <TouchableOpacity
+                            style={styles.modalButtonWrapper}
+                            onPress={onClose}
+                            activeOpacity={0.8}
+                        >
+                            <LinearGradient
+                                colors={[primaryColor, secondaryColor]}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                                style={styles.modalButton}
+                            >
+                                <Text style={styles.modalButtonText}>OK</Text>
+                            </LinearGradient>
+                        </TouchableOpacity>
+
+                        {/* Decorative Corner Elements */}
+                        <View style={[styles.cornerTopLeft, { borderColor: primaryColor }]} />
+                        <View style={[styles.cornerBottomRight, { borderColor: primaryColor }]} />
+                    </Animated.View>
+                </Pressable>
+            </Animated.View>
         </Modal>
     );
 };
@@ -57,6 +193,7 @@ const LoginScreen = ({ navigation }) => {
     const [isDialogVisible, setIsDialogVisible] = useState(false);
     const [dialogTitle, setDialogTitle] = useState('');
     const [dialogMessage, setDialogMessage] = useState('');
+    const [dialogType, setDialogType] = useState('success');
 
 
     useEffect(() => {
@@ -90,7 +227,9 @@ const LoginScreen = ({ navigation }) => {
             if (!token) {
                 setDialogTitle("Error");
                 setDialogMessage("Failed to generate or retrieve token.");
+                setDialogType("error");
                 setIsDialogVisible(true);
+                setIsLoading(false);
                 return;
             }
             
@@ -98,6 +237,7 @@ const LoginScreen = ({ navigation }) => {
 
             setDialogTitle(response.success ? "Success" : "Error");
             setDialogMessage(response.message);
+            setDialogType(response.success ? "success" : "error");
             setIsDialogVisible(true);
 
             if (response.success) {
@@ -109,6 +249,7 @@ const LoginScreen = ({ navigation }) => {
             console.error('Error in handleSendOTP:', error);
             setDialogTitle("Error");
             setDialogMessage("An unexpected error occurred. Please try again.");
+            setDialogType("error");
             setIsDialogVisible(true);
         } finally {
             setIsLoading(false);
@@ -133,38 +274,55 @@ const LoginScreen = ({ navigation }) => {
    // Validate OTP Function
 const handleValidateOtp = async () => {
     setIsLoading(true);
+    console.log("🔹 Starting OTP Validation...");
+    
     try {
         console.log("🔹 Validating OTP...");
         const response = await validateOTP(email, otp);
         
+        console.log("📦 Validation Response:", response);
+        
         if (response.success) {
-            console.log("✅ OTP validated successfully");
+            console.log(" OTP validated successfully");
             
-            // Show success dialog
+            // IMPORTANT: Set dialog states BEFORE showing dialog
+            setDialogType("success");
             setDialogTitle("Success");
             setDialogMessage("OTP validated successfully!");
+            
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // Now show the dialog
             setIsDialogVisible(true);
+            console.log("Dialog should be visible now");
 
-            // Optionally, navigate after a short delay so the user can see the dialog
             setTimeout(() => {
+                console.log(" Navigating to home...");
                 navigation.reset({
                     index: 0,
                     routes: [{ name: "CustomTabNavigator" }],
                 });
-            }, 1500); // 1.5 seconds delay
+            }, 1500); 
         } else {
-            console.log("❌ OTP validation failed:", response.message);
+            console.log("OTP validation failed:", response.message);
+            setDialogType("error");
             setDialogTitle("Validation Failed");
-            setDialogMessage(response.message); // API se aaya hua error message dikhayein
+            setDialogMessage(response.message || "Invalid OTP. Please try again.");
+            
+            await new Promise(resolve => setTimeout(resolve, 100));
             setIsDialogVisible(true);
         }
     } catch (e) {
-        console.error("in the validate otp error", e);
+        console.error(" Error in validate otp:", e);
+        setDialogType("error");
         setDialogTitle("Error");
         setDialogMessage("An unexpected error occurred. Please try again.");
+        
+        await new Promise(resolve => setTimeout(resolve, 100));
         setIsDialogVisible(true);
     } finally {
         setIsLoading(false);
+        console.log("Validation process completed");
     }
 };
 
@@ -205,6 +363,7 @@ const handleValidateOtp = async () => {
                 visible={isDialogVisible}
                 title={dialogTitle}
                 message={dialogMessage}
+                type={dialogType}
                 onClose={() => setIsDialogVisible(false)}
             />
 
@@ -353,46 +512,136 @@ export default LoginScreen
 const styles = StyleSheet.create({
     modalOverlay: {
         flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    },
+    modalOverlayPressable: {
+        flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
     },
     modalContainer: {
-        width: '85%',
-        padding: 20,
-        backgroundColor: 'white',
-        borderRadius: 10,
-        alignItems: 'center',
+        width: '88%',
+        maxWidth: 400,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 24,
+        overflow: 'hidden',
         shadowColor: '#000',
         shadowOffset: {
             width: 0,
-            height: 2,
+            height: 12,
         },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
-        elevation: 5,
+        shadowOpacity: 0.35,
+        shadowRadius: 20,
+        elevation: 15,
+    },
+    modalHeaderBar: {
+        width: '100%',
+        height: 60,
+        justifyContent: 'center',
+        paddingLeft: 20,
+    },
+    headerDots: {
+        flexDirection: 'row',
+        gap: 8,
+    },
+    headerDot: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: 'rgba(255, 255, 255, 0.6)',
+    },
+    iconContainer: {
+        width: 90,
+        height: 90,
+        borderRadius: 45,
+        alignSelf: 'center',
+        marginTop: -45,
+        borderWidth: 4,
+        borderColor: '#FFFFFF',
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 6,
+        },
+        shadowOpacity: 0.2,
+        shadowRadius: 10,
+        elevation: 8,
+    },
+    iconGradient: {
+        flex: 1,
+        borderRadius: 41,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    iconText: {
+        fontSize: 44,
+        fontWeight: '700',
+        color: '#FFFFFF',
+    },
+    contentContainer: {
+        paddingHorizontal: 24,
+        paddingTop: 20,
+        paddingBottom: 16,
+        alignItems: 'center',
     },
     modalTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        marginBottom: 15,
-        color: '#333',
+        fontSize: 24,
+        fontWeight: '800',
+        marginBottom: 12,
+        textAlign: 'center',
+        letterSpacing: 0.5,
     },
     modalMessage: {
         fontSize: 16,
         textAlign: 'center',
-        marginBottom: 20,
-        color: '#555',
+        color: '#666666',
+        lineHeight: 24,
+        paddingHorizontal: 8,
+    },
+    modalButtonWrapper: {
+        paddingHorizontal: 24,
+        paddingBottom: 24,
     },
     modalButton: {
-        backgroundColor: '#4123d0',
-        paddingVertical: 10,
-        paddingHorizontal: 30,
-        borderRadius: 5,
+        paddingVertical: 16,
+        borderRadius: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 4,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 8,
+        elevation: 6,
     },
     modalButtonText: {
-        color: 'white',
-        fontSize: 16,
-        fontWeight: 'bold',
+        color: '#FFFFFF',
+        fontSize: 18,
+        fontWeight: '700',
+        letterSpacing: 1.2,
+    },
+    cornerTopLeft: {
+        position: 'absolute',
+        top: 70,
+        left: 20,
+        width: 24,
+        height: 24,
+        borderTopWidth: 3,
+        borderLeftWidth: 3,
+        borderTopLeftRadius: 6,
+        opacity: 0.25,
+    },
+    cornerBottomRight: {
+        position: 'absolute',
+        bottom: 80,
+        right: 20,
+        width: 24,
+        height: 24,
+        borderBottomWidth: 3,
+        borderRightWidth: 3,
+        borderBottomRightRadius: 6,
+        opacity: 0.25,
     },
 })

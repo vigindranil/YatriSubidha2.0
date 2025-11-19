@@ -1,13 +1,15 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
+import Constants from "expo-constants"; // 🆕 (NEW) 
 const SendOtp = async (email) => {
   try {
-    // Retrieve the token from AsyncStorage
     let token = await AsyncStorage.getItem("user_login_token");
     if (!token) {
-      // Alert ko hata kar object return kiya gaya hai
       return { success: false, message: "No auth token found. Please generate token first." };
     }
+
+    
+    const baseUrl = Constants.expoConfig.extra.apiBaseUrl;
+    console.log("Fetch Baseurl",baseUrl);
 
     // Prepare headers
     const myHeaders = new Headers();
@@ -35,19 +37,13 @@ const SendOtp = async (email) => {
       redirect: "follow",
     };
 
-    // Fetch API
-    const response = await fetch(
-      "https://yatrisubidha.wb.gov.in/service/SendOTP",
-      requestOptions
-    );
+    // 
+    const response = await fetch(`${baseUrl}/SendOTP`, requestOptions);
 
     const result = await response.text();
     console.log("Send OTP Result:", result);
 
     if (result.includes("INVALID_TOKEN") || result.includes("expire")) {
-
-      // Alert ko hata kar object return kiya gaya hai
-      
       return { success: false, message: "Token expired. Please regenerate token." };
     }
 
