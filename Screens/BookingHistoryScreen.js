@@ -70,7 +70,10 @@ const BookingHistoryScreen = () => {
   const [showToPicker, setShowToPicker] = useState(false);
   const [finalResponse, setFinalResponse] = useState(null);
   const [isModalVisible, setModalVisible] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+
+  // Per-item loading
+  const [loadingTickets, setLoadingTickets] = useState({});
+  
   const [nextId, setNextId] = useState(2);
   const [errors, setErrors] = useState({});
   const today = new Date();
@@ -182,9 +185,11 @@ const BookingHistoryScreen = () => {
     };
   };
 
+  // Modified to accept tokenNo,
+  // and control loading state per booking item rather than global isLoading.
   const generateTicket = async (tokenNo) => {
     if (!tokenNo) return;
-    setIsLoading(true);
+    setLoadingTickets((prev) => ({ ...prev, [tokenNo]: true }));
     try {
       const authtoken = await AsyncStorage.getItem("user_login_token");
       if (!authtoken) {
@@ -192,7 +197,7 @@ const BookingHistoryScreen = () => {
           success: false,
           message: "Authentication token not found. Please log in again.",
         });
-        setIsLoading(false);
+        setLoadingTickets((prev) => ({ ...prev, [tokenNo]: false }));
         setModalVisible(true);
         return;
       }
@@ -269,7 +274,7 @@ const BookingHistoryScreen = () => {
         message: "An error occurred. Please check your internet connection.",
       });
     } finally {
-      setIsLoading(false);
+      setLoadingTickets((prev) => ({ ...prev, [tokenNo]: false }));
       setModalVisible(true);
     }
   };
@@ -278,7 +283,7 @@ const BookingHistoryScreen = () => {
     if (!fromDate || !toDate) {
       Alert.alert(
         "Select Date Range",
-        'Please select at least a "From Date" or "To Date" to fetch your booking history.'
+        'Please select at least a "From Date" or "To Date" to found your booking history.'
       );
       return;
     }
@@ -314,7 +319,7 @@ const BookingHistoryScreen = () => {
         }
       } else {
         setError(
-          result && result.message ? result.message : "Unable to fetch data."
+          result && result.message ? result.message : "Unable to found data."
         );
         setNoData(true);
       }
@@ -322,8 +327,8 @@ const BookingHistoryScreen = () => {
       setLoading(false);
     } catch (err) {
       setLoading(false);
-      setError("Failed to fetch booking data. Please try again.");
-      Alert.alert("Error", err.message || "Unable to fetch data.");
+      setError("Failed to found booking data. Please try again.");
+      Alert.alert("Error", err.message || "Unable to found data.");
     }
   };
 
@@ -438,9 +443,12 @@ const BookingHistoryScreen = () => {
           style={styles.bookingActionBtn}
           onPress={() => generateTicket(item.tokenNumber)}
           activeOpacity={0.8}
+          disabled={!!loadingTickets[item.tokenNumber]}
         >
-          {!isLoading && <Text style={styles.bookingActionBtnText}>Download Ticket</Text>}
-          {isLoading && (
+          {!loadingTickets[item.tokenNumber] && (
+            <Text style={styles.bookingActionBtnText}>Download Ticket</Text>
+          )}
+          {loadingTickets[item.tokenNumber] && (
             <ActivityIndicator
               size="small"
               color="#fff"

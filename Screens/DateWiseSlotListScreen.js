@@ -11,14 +11,14 @@ import {
   Modal,
 } from 'react-native';
 import React, { useEffect, useState } from 'react';
-import { useFocusEffect } from '@react-navigation/native';
+// import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons, AntDesign } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getToken } from '../Axios_BaseUrl_Token_SetUp/getToken';
 import { fetchAndSetAuthToken } from '../Axios_BaseUrl_Token_SetUp/setToken';
 import SlotBookingCard from '../Components/SlotBookingCard';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 
 
  
@@ -32,6 +32,7 @@ const DateWiseSlotListScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [todaysDate, setTodaysDate] = useState('');
   const navigation = useNavigation();
+  const route = useRoute();
 
  
   function formatDateToYMD(d) {
@@ -133,20 +134,45 @@ const DateWiseSlotListScreen = () => {
     React.useCallback(() => {
       const today = new Date();
       const formattedToday = formatDateToYMD(today);
+
+      // 1. Reset UI to Today (Your existing logic)
       setTodaysDate(formattedToday);
       setFormattedDate(formattedToday);
       setDate(today);
- 
-      const loadJourneyType = async () => {
+
+      const refreshData = async () => {
+        // 2. Get the correct Journey Type
+        let currentType = journeyType;
         try {
           const savedType = await AsyncStorage.getItem('selectedJourneyType');
-          if (savedType) setJourneyType(savedType);
+          if (savedType) {
+            currentType = savedType;
+            setJourneyType(savedType);
+          }
         } catch (e) {
           console.error('Error loading journey type:', e);
         }
+
+        // 3. Force API Call
+        // If we have a refresh param OR simply want fresh data on every focus:
+        // We call dateWiseSlotDetails explicitly using the calculated variables 
+        // (formattedToday, currentType) instead of state to avoid stale closures.
+        if (route.params?.refresh) {
+           // Clear the param so it doesn't persist unnecessarily
+           navigation.setParams({ refresh: undefined });
+           
+           // Fetch data immediately
+           dateWiseSlotDetails(formattedToday, currentType);
+        } else {
+           // Optional: If you want to fetch on EVERY focus (even switching tabs), 
+           // uncomment the line below. Otherwise, only the route param will trigger it.
+           dateWiseSlotDetails(formattedToday, currentType);
+        }
       };
-      loadJourneyType();
-    }, [])
+
+      refreshData();
+
+    }, [route.params?.refresh]) // Dependency ensures effect runs when refresh param changes
   );
  
   useEffect(() => {

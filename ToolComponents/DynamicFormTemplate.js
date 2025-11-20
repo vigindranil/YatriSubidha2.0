@@ -689,7 +689,7 @@ export default function DynamicFormTemplate({ email, slotId, bookingDate, journe
                 }}
                 onPress={() => {
                   setModalVisible(false);
-                  navigation.navigate('DateWiseSlotListScreen');
+                  navigation.navigate('DateWiseSlotListScreen' , { refresh: true });
                 }}
                 activeOpacity={0.88}
               >
