@@ -24,6 +24,7 @@ const CustomAlertDialog = ({ visible, title, message, onClose, type = "success" 
 
     useEffect(() => {
         if (visible) {
+            console.log("🎨 Dialog Animation Starting - visible:", visible, "type:", type, "title:", title);
             // Reset animations
             scaleValue.setValue(0);
             fadeValue.setValue(0);
@@ -48,7 +49,9 @@ const CustomAlertDialog = ({ visible, title, message, onClose, type = "success" 
                     friction: 8,
                     useNativeDriver: true,
                 }),
-            ]).start();
+            ]).start(() => {
+                console.log("✅ Dialog Animation Completed");
+            });
 
             // Icon pulse animation
             const pulseAnimation = Animated.loop(
@@ -74,7 +77,10 @@ const CustomAlertDialog = ({ visible, title, message, onClose, type = "success" 
         }
     }, [visible]);
 
-    if (!visible) return null;
+    if (!visible) {
+        console.log("❌ Dialog not visible, returning null");
+        return null;
+    }
 
     const isSuccess = type === "success" || title.toLowerCase().includes("success");
     const isError = type === "error" || title.toLowerCase().includes("error") || title.toLowerCase().includes("failed");
@@ -83,6 +89,8 @@ const CustomAlertDialog = ({ visible, title, message, onClose, type = "success" 
     const secondaryColor = isError ? "#FF6B6B" : "#66E07D";
     const iconEmoji = isError ? "⚠️" : "✓";
     const iconBgColor = isError ? "#FFE5E5" : "#E5F9E5";
+
+    console.log("🎭 Dialog Rendering - Title:", title, "Message:", message, "Type:", type);
 
     return (
         <Modal
@@ -195,6 +203,8 @@ const LoginScreen = ({ navigation }) => {
     const [dialogMessage, setDialogMessage] = useState('');
     const [dialogType, setDialogType] = useState('success');
 
+    // Navigation timer ref to prevent multiple navigations
+    const navigationTimerRef = useRef(null);
 
     useEffect(() => {
         console.log('fetching');
@@ -204,128 +214,157 @@ const LoginScreen = ({ navigation }) => {
         console.log('token');
     }, []);
 
-    const validateEmail = (event) => {
+    // Cleanup navigation timer on unmount
+    useEffect(() => {
+        return () => {
+            if (navigationTimerRef.current) {
+                clearTimeout(navigationTimerRef.current);
+            }
+        };
+    }, []);
+
+    // FIXED: Email validation function
+    const validateEmail = (text) => {
         const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-        if (emailRegex.test(event)) {
-            setIsValid(false);
-            setEmail(event);
-        }
-        else {
-            setIsValid(true);
-            setEmail('');
+        
+        // Always update email state with whatever user types
+        setEmail(text);
+        
+        // Validate and update button state
+        if (emailRegex.test(text)) {
+            setIsValid(false); // Valid email, enable button
+        } else {
+            setIsValid(true); // Invalid email, disable button
         }
     };
 
     // OTP handle Function
     const handleSendOTP = async () => {
         setIsLoading(true);
+        console.log("📧 Sending OTP to:", email);
         try {
             // Clear both token and user_data to prevent auto-login before OTP validation
             await AsyncStorage.removeItem('user_login_token');
             await AsyncStorage.removeItem('user_data');
             const token = await getToken();
             if (!token) {
+                console.log("❌ Token generation failed");
+                setDialogType("error");
                 setDialogTitle("Error");
                 setDialogMessage("Failed to generate or retrieve token.");
-                setDialogType("error");
                 setIsDialogVisible(true);
                 setIsLoading(false);
                 return;
             }
             
             const response = await sendOTP(email);
+            console.log("📬 Send OTP Response:", response);
 
+            setDialogType(response.success ? "success" : "error");
             setDialogTitle(response.success ? "Success" : "Error");
             setDialogMessage(response.message);
-            setDialogType(response.success ? "success" : "error");
             setIsDialogVisible(true);
 
             if (response.success) {
                 setIsOtp(true);
+                console.log("✅ OTP sent successfully");
             } else {
                 setIsOtp(false);
+                console.log("❌ OTP send failed");
             }
         } catch (error) {
-            console.error('Error in handleSendOTP:', error);
+            console.error('❌ Error in handleSendOTP:', error);
+            setDialogType("error");
             setDialogTitle("Error");
             setDialogMessage("An unexpected error occurred. Please try again.");
-            setDialogType("error");
             setIsDialogVisible(true);
         } finally {
             setIsLoading(false);
         }
     }
 
-
     console.log("otp", otp);
 
-
-    const otpValidate = (event) => {
-        if (event) {
-            setIsOtpBtnActive(false);
-            setOtp(event);
-        }
-        else {
-            setIsOtpBtnActive(true);
-            setOtp('');
-        };
-    }
-    
-   // Validate OTP Function
-const handleValidateOtp = async () => {
-    setIsLoading(true);
-    console.log("🔹 Starting OTP Validation...");
-    
-    try {
-        console.log("🔹 Validating OTP...");
-        const response = await validateOTP(email, otp);
+    // FIXED: OTP validation function
+    const otpValidate = (text) => {
+        // Always update OTP state with whatever user types
+        setOtp(text);
         
-        console.log("📦 Validation Response:", response);
-        
-        if (response.success) {
-            console.log(" OTP validated successfully");
-            
-            // IMPORTANT: Set dialog states BEFORE showing dialog
-            setDialogType("success");
-            setDialogTitle("Success");
-            setDialogMessage("OTP validated successfully!");
-            
-            await new Promise(resolve => setTimeout(resolve, 100));
-            
-            // Now show the dialog
-            setIsDialogVisible(true);
-            console.log("Dialog should be visible now");
-
-            setTimeout(() => {
-                console.log(" Navigating to home...");
-                navigation.reset({
-                    index: 0,
-                    routes: [{ name: "CustomTabNavigator" }],
-                });
-            }, 1500); 
+        // Enable/disable button based on OTP length
+        if (text && text.length > 0) {
+            setIsOtpBtnActive(false); // Enable button
         } else {
-            console.log("OTP validation failed:", response.message);
-            setDialogType("error");
-            setDialogTitle("Validation Failed");
-            setDialogMessage(response.message || "Invalid OTP. Please try again.");
-            
-            await new Promise(resolve => setTimeout(resolve, 100));
-            setIsDialogVisible(true);
+            setIsOtpBtnActive(true); // Disable button
         }
-    } catch (e) {
-        console.error(" Error in validate otp:", e);
-        setDialogType("error");
-        setDialogTitle("Error");
-        setDialogMessage("An unexpected error occurred. Please try again.");
-        
-        await new Promise(resolve => setTimeout(resolve, 100));
-        setIsDialogVisible(true);
-    } finally {
-        setIsLoading(false);
-        console.log("Validation process completed");
     }
-};
+    
+    // Validate OTP Function - FIXED VERSION
+    const handleValidateOtp = async () => {
+        // Clear any existing navigation timer
+        if (navigationTimerRef.current) {
+            clearTimeout(navigationTimerRef.current);
+            navigationTimerRef.current = null;
+        }
 
+        setIsLoading(true);
+        console.log("🔹 Starting OTP Validation...");
+        console.log("📧 Email:", email, "🔐 OTP:", otp);
+        
+        try {
+            const response = await validateOTP(email, otp);
+            console.log("📦 Full Validation Response:", JSON.stringify(response, null, 2));
+            
+            if (response.success) {
+                console.log("✅ OTP VALIDATION SUCCESSFUL!");
+                
+                // Force state update with explicit values
+                setDialogType("success");
+                setDialogTitle("Success");
+                setDialogMessage("OTP validated successfully!");
+                
+                // Small delay to ensure state is set
+                await new Promise(resolve => setTimeout(resolve, 50));
+                
+                // Show dialog
+                setIsDialogVisible(true);
+                console.log("🎨 Dialog visible state set to TRUE");
+                
+                // Wait a bit longer before navigation
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
+                // Set navigation timer
+                navigationTimerRef.current = setTimeout(() => {
+                    console.log("🚀 Navigating to home...");
+                    navigation.reset({
+                        index: 0,
+                        routes: [{ name: "CustomTabNavigator" }],
+                    });
+                }, 2000); // Increased to 2 seconds so user can see the success dialog
+                
+            } else {
+                console.log("❌ OTP validation failed:", response.message);
+                setDialogType("error");
+                setDialogTitle("Validation Failed");
+                setDialogMessage(response.message || "Invalid OTP. Please try again.");
+                
+                await new Promise(resolve => setTimeout(resolve, 50));
+                setIsDialogVisible(true);
+                console.log("🎨 Error dialog visible state set to TRUE");
+            }
+        } catch (error) {
+            console.error("💥 Error in validate otp:", error);
+            setDialogType("error");
+            setDialogTitle("Error");
+            setDialogMessage("An unexpected error occurred. Please try again.");
+            
+            await new Promise(resolve => setTimeout(resolve, 50));
+            setIsDialogVisible(true);
+            console.log("🎨 Exception dialog visible state set to TRUE");
+        } finally {
+            setIsLoading(false);
+            console.log("✅ Validation process completed");
+        }
+    };
 
     useFocusEffect(
         useCallback(() => {
@@ -346,6 +385,12 @@ const handleValidateOtp = async () => {
     );
 
     const handleReset = () => {
+        // Clear navigation timer if exists
+        if (navigationTimerRef.current) {
+            clearTimeout(navigationTimerRef.current);
+            navigationTimerRef.current = null;
+        }
+
         setEmail('');
         setOtp('');
         setIsValid(true);
@@ -355,6 +400,14 @@ const handleValidateOtp = async () => {
         setErrMsg('');
         setResetPressCount(0);
         setReset(!reset);
+        setIsDialogVisible(false);
+        console.log("🔄 Reset completed");
+    };
+
+    // Handle dialog close
+    const handleDialogClose = () => {
+        console.log("🚪 Dialog closing...");
+        setIsDialogVisible(false);
     };
 
     return (
@@ -364,7 +417,7 @@ const handleValidateOtp = async () => {
                 title={dialogTitle}
                 message={dialogMessage}
                 type={dialogType}
-                onClose={() => setIsDialogVisible(false)}
+                onClose={handleDialogClose}
             />
 
             <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginTop: 40, height: 40, width: 40, marginLeft: 15 }}>
@@ -396,6 +449,7 @@ const handleValidateOtp = async () => {
                                     </View>
                                     <TextInput
                                         onChangeText={otpValidate}
+                                        value={otp}
                                         style={{ width: 280, height: 40 }}
                                         placeholder='One Time Password'
                                         inputMode='numeric'
@@ -479,8 +533,12 @@ const handleValidateOtp = async () => {
                                     </View>
                                     <TextInput
                                         onChangeText={validateEmail}
+                                        value={email}
                                         style={{ width: 280, height: 40 }}
                                         placeholder='Email Address'
+                                        keyboardType='email-address'
+                                        autoCapitalize='none'
+                                        autoCorrect={false}
                                     />
                                 </View>
                             </View>
