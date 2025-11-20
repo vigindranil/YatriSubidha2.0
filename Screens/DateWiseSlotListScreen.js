@@ -287,10 +287,10 @@ const DateWiseSlotListScreen = () => {
         onRequestClose={() => setShowDatePicker(false)}>
         <View style={styles.datePickerModalOverlay}>
           <View style={styles.datePickerCard}>
-            <View style={styles.datePickerHeader}>
+            {/* <View style={styles.datePickerHeader}>
               <Text style={styles.datePickerTitle}>Select a date</Text>
               <Text style={styles.datePickerSubtitle}>Choose within the next 30 days</Text>
-            </View>
+            </View> */}
             <DateTimePicker
               value={date}
               mode="date"
@@ -365,11 +365,21 @@ const styles = StyleSheet.create({
   flatListContentContainer: { paddingBottom: 30 },
   datePickerModalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  datePickerCard: { width: '88%', backgroundColor: '#fff', borderRadius: 12, padding: 10 },
+  datePickerCard: { width: '88%', backgroundColor: 'transparent', borderRadius: 12, padding: 0, 
+    
+    // 2. ADD Overflow Hidden to ensure the picker doesn't bleed out of the rounded corners
+    overflow: 'hidden', 
+    
+    // Optional: Add shadow to the card itself for a pop-up effect
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,},
   datePickerHeader: { paddingBottom: 10 },
   datePickerTitle: { fontSize: 16, fontWeight: '800', color: '#262626' },
   datePickerSubtitle: { fontSize: 12, color: '#8c8c8c', marginTop: 2 },

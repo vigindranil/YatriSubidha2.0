@@ -56,7 +56,7 @@ const LoginScreen = ({ navigation }) => {
             const token = await getToken();
             if (!token) {
                 Alert.alert(
-                    "Error",
+                    "Failed",
                     "Failed to retrieve a security token. Please check your connection.",
                     [{ text: "OK" }]
                 );
@@ -66,7 +66,7 @@ const LoginScreen = ({ navigation }) => {
             const response = await sendOTP(email);
             
             Alert.alert(
-                response.success ? "Success" : "Error",
+                response.success ? "Successfull" : "Failed",
                 response.message,
                 [{ text: "OK" }]
             );
@@ -104,7 +104,7 @@ const LoginScreen = ({ navigation }) => {
             
             if (response.success) {
                 Alert.alert(
-                    "Success",
+                    "Successfull",
                     "OTP validated successfully!",
                     [
                         {
@@ -129,7 +129,7 @@ const LoginScreen = ({ navigation }) => {
         } catch (e) {
             console.error("Error in validate otp:", e);
             Alert.alert(
-                "Error",
+                "Something went Wrong",
                 "An unexpected error occurred during validation. Please try again.",
                 [{ text: "OK" }]
             );
