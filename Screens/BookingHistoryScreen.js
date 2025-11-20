@@ -75,18 +75,14 @@ const BookingHistoryScreen = () => {
   const [errors, setErrors] = useState({});
   const today = new Date();
 
-//   const { apiBaseUrl } = Constants.expoConfig.extra;
-
-//   console.log("api",apiBaseUrl)
-
-
+  //   const { apiBaseUrl } = Constants.expoConfig.extra;
+  //   console.log("api",apiBaseUrl)
 
   const buildAllTicketsHTML = (tickets) => {
     const ticketHTMLs = tickets
       .map((d) => {
-
         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(
-            d.QRCodeData.split('|')[0]
+          d.QRCodeData.split('|')[0]
         )}`;
         return `
         <div class="ticket-wrapper">
@@ -456,11 +452,25 @@ const BookingHistoryScreen = () => {
     </View>
   );
 
+  console.log(bookings.length);
+
   return (
     <SafeAreaView style={styles.safeContainer}>
       <StatusBar barStyle="light-content" backgroundColor="#4325da" />
       <View style={styles.container}>
-        <Text style={styles.headerText}>Booking History</Text>
+        {/* Header row with title and clear button */}
+        <View style={styles.headerRowHistory}>
+          <Text style={styles.headerText}>Booking History</Text>
+          {bookings.length > 0 && <TouchableOpacity
+            style={styles.clearBtn}
+            onPress={clearDateAndResults}
+            activeOpacity={0.88}
+            accessibilityLabel="Clear filters and results"
+          >
+            <MaterialIcons name="cleaning-services" size={22} color="#fff" />
+            <Text style={styles.clearBtnText}>Clear</Text>
+          </TouchableOpacity>}
+        </View>
         <View style={styles.dateInputContainer}>
           <TouchableOpacity
             style={styles.dateFieldContainer}
@@ -571,18 +581,6 @@ const BookingHistoryScreen = () => {
             </TouchableOpacity>
           </View>
         )}
-        {/* Enhanced Floating Clear Button */}
-        {(!loading && (bookings.length > 0 || noData || error)) && (
-          <TouchableOpacity
-            style={styles.fabClearBtnBetter}
-            onPress={clearDateAndResults}
-            activeOpacity={0.88}
-            accessibilityLabel="Clear filters and results"
-          >
-            <MaterialIcons name="cleaning-services" size={30} color="#fff" />
-            <Text style={styles.fabClearBtnText}>Clear</Text>
-          </TouchableOpacity>
-        )}
 
         <Modal
           isVisible={isModalVisible}
@@ -661,15 +659,42 @@ const styles = StyleSheet.create({
   headerText: {
     fontSize: 22,
     fontWeight: "700",
-    marginBottom: 12,
     color: "#4123d0",
-    alignSelf: "center",
+    alignSelf: "flex-start",
+  },
+  headerRowHistory: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+    marginTop: 5,
+  },
+  clearBtn: {
+    flexDirection: "row",
+    backgroundColor: "#4325da",
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 6,
+    elevation: 2,
+    shadowColor: "#4325da",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.13,
+    shadowRadius: 6,
+  },
+  clearBtnText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 15,
+    marginLeft: 8,
+    letterSpacing: 0.15,
   },
   dateInputContainer: {
     flexDirection: "row",
     alignItems: "flex-end",
     marginBottom: 12,
-    marginTop: 5,
     backgroundColor: "#fff",
     borderRadius: 12,
     padding: 8,
@@ -720,8 +745,8 @@ const styles = StyleSheet.create({
   // More visually appealing Floating Clear Button
   fabClearBtnBetter: {
     position: "absolute",
-    bottom: 15,
-    right: 22,
+    bottom: 60,
+    left: 10,
     flexDirection: "row",
     backgroundColor: "#6C47DE",
     borderRadius: 26,
