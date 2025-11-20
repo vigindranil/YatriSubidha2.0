@@ -23,8 +23,8 @@ const CustomAlertDialog = ({ visible, title, message, onClose, type = "success" 
     const pulseValue = useRef(new Animated.Value(1)).current;
 
     useEffect(() => {
+        let pulseAnimation;
         if (visible) {
-            console.log("🎨 Dialog Animation Starting - visible:", visible, "type:", type, "title:", title);
             // Reset animations
             scaleValue.setValue(0);
             fadeValue.setValue(0);
@@ -49,12 +49,10 @@ const CustomAlertDialog = ({ visible, title, message, onClose, type = "success" 
                     friction: 8,
                     useNativeDriver: true,
                 }),
-            ]).start(() => {
-                console.log("✅ Dialog Animation Completed");
-            });
+            ]).start();
 
             // Icon pulse animation
-            const pulseAnimation = Animated.loop(
+            pulseAnimation = Animated.loop(
                 Animated.sequence([
                     Animated.timing(pulseValue, {
                         toValue: 1.1,
@@ -69,28 +67,24 @@ const CustomAlertDialog = ({ visible, title, message, onClose, type = "success" 
                 ])
             );
             pulseAnimation.start();
-
-            // Cleanup function
-            return () => {
-                pulseAnimation.stop();
-            };
         }
+
+        // Cleanup function
+        return () => {
+            if (pulseAnimation) {
+                pulseAnimation.stop();
+            }
+        };
     }, [visible]);
 
-    if (!visible) {
-        console.log("❌ Dialog not visible, returning null");
-        return null;
-    }
+    if (!visible) return null;
 
-    const isSuccess = type === "success" || title.toLowerCase().includes("success");
     const isError = type === "error" || title.toLowerCase().includes("error") || title.toLowerCase().includes("failed");
     
     const primaryColor = isError ? "#FF3B30" : "#34C759";
     const secondaryColor = isError ? "#FF6B6B" : "#66E07D";
     const iconEmoji = isError ? "⚠️" : "✓";
     const iconBgColor = isError ? "#FFE5E5" : "#E5F9E5";
-
-    console.log("🎭 Dialog Rendering - Title:", title, "Message:", message, "Type:", type);
 
     return (
         <Modal
@@ -111,6 +105,7 @@ const CustomAlertDialog = ({ visible, title, message, onClose, type = "success" 
                                 ],
                             },
                         ]}
+                        // Prevent modal from closing when clicking inside
                         onStartShouldSetResponder={() => true}
                     >
                         {/* Decorative Header Bar */}
@@ -147,7 +142,7 @@ const CustomAlertDialog = ({ visible, title, message, onClose, type = "success" 
                             </LinearGradient>
                         </Animated.View>
 
-                        {/* Content - Direct display without typing */}
+                        {/* Content */}
                         <View style={styles.contentContainer}>
                             <Text style={[styles.modalTitle, { color: primaryColor }]}>
                                 {title}
@@ -183,186 +178,123 @@ const CustomAlertDialog = ({ visible, title, message, onClose, type = "success" 
 
 
 const LoginScreen = ({ navigation }) => {
-    const windowWidth = Dimensions.get("window").width;
     const windowHeight = Dimensions.get("window").height;
     const screenWidth = Dimensions.get('window').width;
     const [email, setEmail] = useState('');
     const [otp, setOtp] = useState('');
-    const [isValid, setIsValid] = useState(true);
-    const [isOtpBtnActive, setIsOtpBtnActive] = useState(true);
-    const [isOtp, setIsOtp] = useState(false);
+    const [isValidEmail, setIsValidEmail] = useState(false);
+    const [isOtpSent, setIsOtpSent] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [errMsg, setErrMsg] = useState('');
-    const [reset, setReset] = useState(false)
     const [resetPressCount, setResetPressCount] = useState(0)
+    const [reset, setReset] = useState(false);
     const dispatch = useDispatch();
 
-    // Custom Dialog ke liye States
+    // Custom Dialog States
     const [isDialogVisible, setIsDialogVisible] = useState(false);
     const [dialogTitle, setDialogTitle] = useState('');
     const [dialogMessage, setDialogMessage] = useState('');
     const [dialogType, setDialogType] = useState('success');
 
-    // Navigation timer ref to prevent multiple navigations
-    const navigationTimerRef = useRef(null);
-
     useEffect(() => {
-        console.log('fetching');
-        fetch("https://yatrisubidha.wb.gov.in/").catch(() => {
-            console.log('error');
+        // Initial fetch, can be kept or removed based on necessity
+        fetch("https://yatrisubidha.wb.gov.in/").catch((err) => {
+            console.log('Network check error:', err);
         });
-        console.log('token');
     }, []);
 
-    // Cleanup navigation timer on unmount
-    useEffect(() => {
-        return () => {
-            if (navigationTimerRef.current) {
-                clearTimeout(navigationTimerRef.current);
-            }
-        };
-    }, []);
-
-    // FIXED: Email validation function
     const validateEmail = (text) => {
         const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-        
-        // Always update email state with whatever user types
         setEmail(text);
-        
-        // Validate and update button state
         if (emailRegex.test(text)) {
-            setIsValid(false); // Valid email, enable button
+            setIsValidEmail(true);
         } else {
-            setIsValid(true); // Invalid email, disable button
+            setIsValidEmail(false);
         }
     };
 
-    // OTP handle Function
     const handleSendOTP = async () => {
+        if (!isValidEmail) return;
+        
         setIsLoading(true);
-        console.log("📧 Sending OTP to:", email);
         try {
-            // Clear both token and user_data to prevent auto-login before OTP validation
-            await AsyncStorage.removeItem('user_login_token');
-            await AsyncStorage.removeItem('user_data');
+            // Clear previous login data to ensure a fresh login
+            await AsyncStorage.multiRemove(['user_login_token', 'user_data']);
+            
             const token = await getToken();
             if (!token) {
-                console.log("❌ Token generation failed");
-                setDialogType("error");
                 setDialogTitle("Error");
-                setDialogMessage("Failed to generate or retrieve token.");
+                setDialogMessage("Failed to retrieve a security token. Please check your connection.");
+                setDialogType("error");
                 setIsDialogVisible(true);
-                setIsLoading(false);
-                return;
+                return; // Stop execution
             }
             
             const response = await sendOTP(email);
-            console.log("📬 Send OTP Response:", response);
-
-            setDialogType(response.success ? "success" : "error");
+            
             setDialogTitle(response.success ? "Success" : "Error");
             setDialogMessage(response.message);
+            setDialogType(response.success ? "success" : "error");
             setIsDialogVisible(true);
 
             if (response.success) {
-                setIsOtp(true);
-                console.log("✅ OTP sent successfully");
-            } else {
-                setIsOtp(false);
-                console.log("❌ OTP send failed");
+                setIsOtpSent(true);
+                setErrMsg(''); // Clear previous errors
+                setResetPressCount(0); // Reset resend counter
             }
         } catch (error) {
-            console.error('❌ Error in handleSendOTP:', error);
+            console.error('Error in handleSendOTP:', error);
+            setDialogTitle("Request Failed");
+            setDialogMessage("An unexpected error occurred while sending OTP. Please try again.");
             setDialogType("error");
-            setDialogTitle("Error");
-            setDialogMessage("An unexpected error occurred. Please try again.");
             setIsDialogVisible(true);
         } finally {
             setIsLoading(false);
         }
     }
 
-    console.log("otp", otp);
-
-    // FIXED: OTP validation function
-    const otpValidate = (text) => {
-        // Always update OTP state with whatever user types
-        setOtp(text);
-        
-        // Enable/disable button based on OTP length
-        if (text && text.length > 0) {
-            setIsOtpBtnActive(false); // Enable button
-        } else {
-            setIsOtpBtnActive(true); // Disable button
-        }
-    }
-    
-    // Validate OTP Function - FIXED VERSION
     const handleValidateOtp = async () => {
-        // Clear any existing navigation timer
-        if (navigationTimerRef.current) {
-            clearTimeout(navigationTimerRef.current);
-            navigationTimerRef.current = null;
+        if (otp.length !== 6) {
+            setDialogTitle("Invalid OTP");
+            setDialogMessage("Please enter a valid 6-digit OTP.");
+            setDialogType("error");
+            setIsDialogVisible(true);
+            return;
         }
 
         setIsLoading(true);
-        console.log("🔹 Starting OTP Validation...");
-        console.log("📧 Email:", email, "🔐 OTP:", otp);
-        
         try {
             const response = await validateOTP(email, otp);
-            console.log("📦 Full Validation Response:", JSON.stringify(response, null, 2));
             
             if (response.success) {
-                console.log("✅ OTP VALIDATION SUCCESSFUL!");
-                
-                // Force state update with explicit values
-                setDialogType("success");
                 setDialogTitle("Success");
-                setDialogMessage("OTP validated successfully!");
-                
-                // Small delay to ensure state is set
-                await new Promise(resolve => setTimeout(resolve, 50));
-                
-                // Show dialog
+                setDialogMessage("OTP validated successfully! Redirecting...");
+                setDialogType("success");
                 setIsDialogVisible(true);
-                console.log("🎨 Dialog visible state set to TRUE");
-                
-                // Wait a bit longer before navigation
-                await new Promise(resolve => setTimeout(resolve, 100));
-                
-                // Set navigation timer
-                navigationTimerRef.current = setTimeout(() => {
-                    console.log("🚀 Navigating to home...");
+
+                // Navigate after a short delay to let user see the success message
+                setTimeout(() => {
+                    setIsDialogVisible(false); // Hide dialog before navigating
                     navigation.reset({
                         index: 0,
                         routes: [{ name: "CustomTabNavigator" }],
                     });
-                }, 2000); // Increased to 2 seconds so user can see the success dialog
-                
+                }, 1500);
             } else {
-                console.log("❌ OTP validation failed:", response.message);
-                setDialogType("error");
                 setDialogTitle("Validation Failed");
                 setDialogMessage(response.message || "Invalid OTP. Please try again.");
-                
-                await new Promise(resolve => setTimeout(resolve, 50));
+                setDialogType("error");
                 setIsDialogVisible(true);
-                console.log("🎨 Error dialog visible state set to TRUE");
+                setErrMsg(response.message || "Invalid OTP. Please try again.");
             }
-        } catch (error) {
-            console.error("💥 Error in validate otp:", error);
-            setDialogType("error");
+        } catch (e) {
+            console.error("Error in validate otp:", e);
             setDialogTitle("Error");
-            setDialogMessage("An unexpected error occurred. Please try again.");
-            
-            await new Promise(resolve => setTimeout(resolve, 50));
+            setDialogMessage("An unexpected error occurred during validation. Please try again.");
+            setDialogType("error");
             setIsDialogVisible(true);
-            console.log("🎨 Exception dialog visible state set to TRUE");
         } finally {
             setIsLoading(false);
-            console.log("✅ Validation process completed");
         }
     };
 
@@ -373,7 +305,7 @@ const LoginScreen = ({ navigation }) => {
                 const userData = await AsyncStorage.getItem("user_data");
 
                 if (token && userData) {
-                    console.log("✅ Auto login success");
+                    console.log("✅ Auto login successful");
                     navigation.reset({
                         index: 0,
                         routes: [{ name: "CustomTabNavigator" }],
@@ -385,179 +317,128 @@ const LoginScreen = ({ navigation }) => {
     );
 
     const handleReset = () => {
-        // Clear navigation timer if exists
-        if (navigationTimerRef.current) {
-            clearTimeout(navigationTimerRef.current);
-            navigationTimerRef.current = null;
-        }
-
         setEmail('');
         setOtp('');
-        setIsValid(true);
-        setIsOtpBtnActive(true);
-        setIsOtp(false);
+        setIsValidEmail(false);
+        setIsOtpSent(false);
         setIsLoading(false);
         setErrMsg('');
         setResetPressCount(0);
         setReset(!reset);
-        setIsDialogVisible(false);
-        console.log("🔄 Reset completed");
-    };
-
-    // Handle dialog close
-    const handleDialogClose = () => {
-        console.log("🚪 Dialog closing...");
-        setIsDialogVisible(false);
     };
 
     return (
-        <LinearGradient colors={["#ccdcff", "#ccdcff", "#ccdcff"]} style={{ flex: 1 }}>
+        <LinearGradient colors={["#ccdcff", "#e6eeff", "#ccdcff"]} style={{ flex: 1 }}>
             <CustomAlertDialog
                 visible={isDialogVisible}
                 title={dialogTitle}
                 message={dialogMessage}
                 type={dialogType}
-                onClose={handleDialogClose}
+                onClose={() => setIsDialogVisible(false)}
             />
 
-            <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginTop: 40, height: 40, width: 40, marginLeft: 15 }}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginTop: 40, height: 40, width: 40, marginLeft: 15, position: 'absolute', zIndex: 1 }}>
                 <AntDesign name="arrowleft" size={30} color="#4d4d4d" />
             </TouchableOpacity>
-            <View style={{ flex: 1, alignItems: 'center', marginTop: windowHeight / 5, marginBottom: 5, }}>
-                <Text style={{
-                    fontSize: 26, fontWeight: '700',
-                    color: '#4d4d4d', textAlign: 'center'
-                }}>Sign In to your account!</Text>
+            
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 15 }}>
+                <Text style={{ fontSize: 26, fontWeight: '700', color: '#4d4d4d', textAlign: 'center', marginBottom: 20 }}>
+                    Sign In to your account!
+                </Text>
 
-                <Text style={{ textAlign: 'center', marginTop: 40, fontSize: 14, fontWeight: '600', color: isOtp ? '#0000b3' : '#595959' }}>
-                    {isOtp ?
-                        "An One Time Password has been sent to your Email for verification"
-                        :
-                        isLoading ? "Sending OTP..." : "An One Time Password will be sent to your Email for verification"
+                <Text style={{ textAlign: 'center', marginBottom: 20, fontSize: 14, fontWeight: '600', color: isOtpSent ? '#0000b3' : '#595959' }}>
+                    {isOtpSent 
+                        ? "An One Time Password has been sent to your Email for verification"
+                        : "An One Time Password will be sent to your Email for verification"
                     }
                 </Text>
+
                 {isLoading ? (
                     <ActivityIndicator size="large" color="#4123d0" style={{ marginTop: 20 }} />
+                ) : !isOtpSent ? (
+                    <>
+                        <Text style={styles.inputLabel}>Enter Email Address</Text>
+                        <View style={styles.inputContainer}>
+                            <View style={styles.iconWrapper}>
+                                <MaterialCommunityIcons name="email" size={24} color="#737373" />
+                            </View>
+                            <TextInput
+                                onChangeText={validateEmail}
+                                style={styles.textInput}
+                                placeholder='Email Address'
+                                keyboardType='email-address'
+                                autoCapitalize='none'
+                                value={email}
+                            />
+                        </View>
+                        <View style={{ marginTop: 25 }}>
+                            <LoginSpringButton
+                                onPress={handleSendOTP}
+                                title={'Send OTP'}
+                                btnHeight={50}
+                                btnWidth={screenWidth * .9}
+                                bfrPrsColor={['#563bde', '#4325da']}
+                                aftPrsColor={['#4123d0', '#3c21c4']}
+                                btnTxtColor={'#fff'}
+                                btnTxtSize={18}
+                                isDisabled={!isValidEmail}
+                            />
+                        </View>
+                    </>
                 ) : (
-                    isOtp ? (
-                        <>
-                            <View style={{ marginTop: 15 }}>
-                                <Text style={{ fontSize: 14, color: '#737373', marginLeft: 15 }}>Enter One Time Password</Text>
-                                <View style={{ height: 40, width: 360, borderWidth: .5, marginHorizontal: 15, borderRadius: 4, marginTop: 8, flexDirection: 'row' }}>
-                                    <View style={{ height: 40, width: 40, alignItems: 'center', justifyContent: 'center' }}>
-                                        <Entypo name="lock" size={24} color="#737373" />
-                                    </View>
-                                    <TextInput
-                                        onChangeText={otpValidate}
-                                        value={otp}
-                                        style={{ width: 280, height: 40 }}
-                                        placeholder='One Time Password'
-                                        inputMode='numeric'
-                                        maxLength={6}
-                                    />
-                                </View>
+                    <>
+                        <Text style={styles.inputLabel}>Enter One Time Password</Text>
+                        <View style={styles.inputContainer}>
+                            <View style={styles.iconWrapper}>
+                                <Entypo name="lock" size={24} color="#737373" />
                             </View>
-                            <View style={{ marginTop: 10, paddingHorizontal: 15 }}>
-                                {errMsg ? (<View style={{ alignItems: 'center' }}>
-                                    <Text style={{ color: '#ff0000', textAlign: 'center', fontWeight: '600', fontSize: 15 }}>{errMsg}</Text>
+                            <TextInput
+                                onChangeText={setOtp}
+                                style={styles.textInput}
+                                placeholder='One Time Password'
+                                keyboardType='numeric'
+                                maxLength={6}
+                                value={otp}
+                            />
+                        </View>
 
-                                    {resetPressCount < 1 ? (
-                                        <View style={{ flexDirection: 'row', marginVertical: 5 }}>
-                                            <TouchableOpacity
-                                                onPress={handleReset}
-                                                style={{ padding: 6, width: 100, backgroundColor: '#4123d0', borderRadius: 5, marginRight: 7, alignItems: 'center', justifyContent: 'center' }}>
-                                                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Reset</Text>
-                                            </TouchableOpacity>
-                                            <TouchableOpacity
-                                                onPress={() => {
-                                                    handleSendOTP();
-                                                    setResetPressCount((count) => count + 1);
-                                                }}
-                                                style={{ padding: 6, width: 100, backgroundColor: '#4123d0', borderRadius: 5, marginLeft: 7, alignItems: 'center', justifyContent: 'center' }}>
-                                                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Resend OTP</Text>
-                                            </TouchableOpacity>
-                                        </View>
-                                    ) : (
-                                        <TouchableOpacity
-                                            onPress={handleReset}
-                                            style={{ padding: 6, width: 100, backgroundColor: '#4123d0', borderRadius: 5, marginLeft: 7, alignItems: 'center', justifyContent: 'center', marginVertical: 5 }}>
-                                            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Reset</Text>
-                                        </TouchableOpacity>
-                                    )}
-
-                                </View>) :
-                                    resetPressCount < 1 ?
-                                        (
-                                            <TouchableOpacity
-                                                onPress={() => {
-                                                    handleSendOTP();
-                                                    setResetPressCount((count) => count + 1);
-                                                }}
-                                                style={{ padding: 5 }}>
-                                                <Text style={{ color: '#ff0000', textAlign: 'center', fontWeight: '600', fontSize: 15, marginVertical: 10 }}>Resend One Time Password</Text>
-                                            </TouchableOpacity>
-                                        ) : (
-                                            <View style={{ alignItems: 'center', marginVertical: 10 }}>
-                                                <TouchableOpacity
-                                                    onPress={handleReset}
-                                                    style={{ padding: 6, width: 100, backgroundColor: '#4123d0', borderRadius: 5, marginRight: 7, alignItems: 'center', justifyContent: 'center' }}>
-                                                    <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Reset</Text>
-                                                </TouchableOpacity>
-                                            </View>
-                                        )}
-                                <Text style={{ fontSize: 14, color: '#4d4d4d', textAlign: 'center' }}>There might be some delay in receiving the One Time Password. OTP Will be expired in 15 minutes.</Text>
+                        {errMsg && (
+                            <View style={{ alignItems: 'center', marginTop: 15 }}>
+                                <Text style={styles.errorText}>{errMsg}</Text>
                             </View>
-
-                            <View style={{ marginTop: 25 }}>
-                                <LoginSpringButton
-                                    onPress={handleValidateOtp}
-                                    title={'Validate'}
-                                    btnHeight={50}
-                                    btnWidth={screenWidth * .93}
-                                    bfrPrsColor={['#563bde', '#4325da']}
-                                    aftPrsColor={['#4123d0', '#3c21c4']}
-                                    btnTxtColor={'#fff'}
-                                    btnTxtSize={20}
-                                    isDisabled={isOtpBtnActive}
-                                />
-                            </View>
-                        </>
-
-                    ) : (
-                        <>
-                            <View style={{ marginTop: 15 }}>
-                                <Text style={{ fontSize: 14, color: '#737373', marginLeft: 15 }}>Enter Email Address</Text>
-                                <View style={{ height: 40, width: 360, borderWidth: .5, marginHorizontal: 15, borderRadius: 4, marginTop: 8, flexDirection: 'row' }}>
-                                    <View style={{ height: 40, width: 40, alignItems: 'center', justifyContent: 'center' }}>
-                                        <MaterialCommunityIcons name="email" size={24} color="#737373" />
-                                    </View>
-                                    <TextInput
-                                        onChangeText={validateEmail}
-                                        value={email}
-                                        style={{ width: 280, height: 40 }}
-                                        placeholder='Email Address'
-                                        keyboardType='email-address'
-                                        autoCapitalize='none'
-                                        autoCorrect={false}
-                                    />
-                                </View>
-                            </View>
-                            <View style={{ marginTop: 25 }}>
-                                <LoginSpringButton
-                                    onPress={handleSendOTP}
-                                    title={'Send OTP'}
-                                    btnHeight={50}
-                                    btnWidth={screenWidth * .93}
-                                    bfrPrsColor={['#563bde', '#4325da']}
-                                    aftPrsColor={['#4123d0', '#3c21c4']}
-                                    btnTxtColor={'#fff'}
-                                    btnTxtSize={18}
-                                    isDisabled={isValid}
-                                />
-                            </View>
-                        </>
-                    )
-
+                        )}
+                        
+                        <View style={styles.resendContainer}>
+                            {resetPressCount < 1 ? (
+                                <TouchableOpacity onPress={() => { handleSendOTP(); setResetPressCount(c => c + 1); }}>
+                                    <Text style={styles.resendText}>Resend One Time Password</Text>
+                                </TouchableOpacity>
+                            ) : (
+                                <Text style={{color: '#737373'}}>You can resend OTP once.</Text>
+                            )}
+                             <TouchableOpacity onPress={handleReset} style={{marginTop: 10}}>
+                                <Text style={styles.resetLink}>Use another email? Reset</Text>
+                            </TouchableOpacity>
+                        </View>
+                        
+                        <Text style={styles.infoText}>
+                            There might be some delay in receiving the OTP. It will expire in 15 minutes.
+                        </Text>
+                        
+                        <View style={{ marginTop: 25 }}>
+                            <LoginSpringButton
+                                onPress={handleValidateOtp}
+                                title={'Validate'}
+                                btnHeight={50}
+                                btnWidth={screenWidth * .9}
+                                bfrPrsColor={['#563bde', '#4325da']}
+                                aftPrsColor={['#4123d0', '#3c21c4']}
+                                btnTxtColor={'#fff'}
+                                btnTxtSize={20}
+                                isDisabled={otp.length !== 6}
+                            />
+                        </View>
+                    </>
                 )}
             </View>
             <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent={true} />
@@ -568,6 +449,62 @@ const LoginScreen = ({ navigation }) => {
 export default LoginScreen
 
 const styles = StyleSheet.create({
+    // Input and other component styles
+    inputLabel: {
+        fontSize: 14,
+        color: '#737373',
+        alignSelf: 'flex-start',
+        marginLeft: 5,
+        marginBottom: 8,
+    },
+    inputContainer: {
+        height: 50,
+        width: '100%',
+        borderWidth: 1,
+        borderColor: '#B0B0B0',
+        borderRadius: 8,
+        flexDirection: 'row',
+        backgroundColor: '#fff'
+    },
+    iconWrapper: {
+        height: '100%',
+        width: 50,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    textInput: {
+        flex: 1,
+        height: '100%',
+        fontSize: 16,
+    },
+    errorText: {
+        color: '#ff0000',
+        textAlign: 'center',
+        fontWeight: '600',
+        fontSize: 15
+    },
+    resendContainer: {
+        marginVertical: 15,
+        alignItems: 'center'
+    },
+    resendText: {
+        color: '#0055ff',
+        fontWeight: '600',
+        fontSize: 15,
+    },
+    resetLink: {
+        color: '#4123d0',
+        fontWeight: '700'
+    },
+    infoText: {
+        fontSize: 14,
+        color: '#4d4d4d',
+        textAlign: 'center',
+        marginTop: 10,
+        paddingHorizontal: 10,
+    },
+    
+    // Modal styles (unchanged from your original code)
     modalOverlay: {
         flex: 1,
         backgroundColor: 'rgba(0, 0, 0, 0.65)',
